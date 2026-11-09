@@ -9,6 +9,7 @@ import {
   NodeResizer,
   Position,
   useReactFlow,
+  useStore,
 } from "@xyflow/react";
 import type { EditorView } from "@codemirror/view";
 import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
@@ -42,9 +43,13 @@ function Frame({ node, className = "", children }: { node: NodeProps<FlowNode>; 
   );
 }
 
+// Zoomed far out a card is a few pixels tall: plain text there instead of one CodeMirror per card.
+const useDetailed = () => useStore((s) => s.transform[2] >= 0.45);
+
 /** Markdown card: rendered while idle (so it drags like a card), editable after a double-click until deselected. */
 export function TextCard(node: NodeProps<FlowNode>) {
   const { updateNodeData } = useReactFlow();
+  const detailed = useDetailed();
   const [editing, setEditing] = useState(false);
   const view = useRef<EditorView | null>(null);
   const text = node.data.text ?? "";
@@ -58,7 +63,11 @@ export function TextCard(node: NodeProps<FlowNode>) {
     <Frame node={node}>
       <div className={editing ? "card-text nodrag nowheel" : "card-text"} onDoubleClick={() => setEditing(true)}>
         {!editing && !text && <span className="card-muted">Double-click to edit</span>}
-        <MarkdownEditor value={text} onChange={(t) => updateNodeData(node.id, { text: t })} readOnly={!editing} viewRef={view} />
+        {detailed || editing ? (
+          <MarkdownEditor value={text} onChange={(t) => updateNodeData(node.id, { text: t })} readOnly={!editing} viewRef={view} />
+        ) : (
+          text
+        )}
       </div>
     </Frame>
   );
@@ -68,6 +77,7 @@ export function TextCard(node: NodeProps<FlowNode>) {
 export function FileCard(node: NodeProps<FlowNode>) {
   const file = node.data.file ?? "";
   // The path comes from the .canvas file, which may be someone else's: stay inside the vault.
+  const detailed = useDetailed();
   const isNote = file.endsWith(".md") && !file.startsWith("/") && !file.split("/").some((s) => s === ".." || s === "");
   const [text, setText] = useState<string | null | undefined>(); // undefined = loading, null = missing
   useEffect(() => {
@@ -84,7 +94,7 @@ export function FileCard(node: NodeProps<FlowNode>) {
         )}
       </div>
       <div className="card-text">
-        {text === null ? <span className="card-muted">missing</span> : <MarkdownEditor value={text ?? ""} onChange={() => {}} readOnly />}
+        {text === null ? <span className="card-muted">missing</span> : detailed ? <MarkdownEditor value={text ?? ""} onChange={() => {}} readOnly /> : text}
       </div>
     </Frame>
   );

@@ -4,14 +4,17 @@ import {
   Background,
   ConnectionMode,
   Controls,
+  getNodesBounds,
+  getViewportForBounds,
   MarkerType,
+  type Viewport,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
   type XYPosition,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { type CSSProperties, type DragEvent, useEffect, useRef, useState } from "react";
+import { type CSSProperties, type DragEvent, memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { DocStatusBar } from "../DocStatusBar";
 import { usePapers } from "../papers";
 import { canvasColor, HIGHLIGHT_MIME } from "../quote";
@@ -61,7 +64,10 @@ async function listNotes() {
   return (await Promise.all([md("notes"), ...papers.map((p) => md(`papers/${p.name}/notes`))])).flat();
 }
 
-function Canvas({ text, onChange }: { text: string; onChange: (text: string) => void }) {
+// `text` is only read on mount; later saves change it, but re-rendering the whole flow for that is wasted work.
+const Canvas = memo(CanvasView, (a, b) => a.onChange === b.onChange);
+
+function CanvasView({ text, onChange }: { text: string; onChange: (text: string) => void }) {
   const [init] = useState(() => {
     try {
       const p = parseCanvas(text);
@@ -88,11 +94,20 @@ function Canvas({ text, onChange }: { text: string; onChange: (text: string) => 
   }, []);
   const [notes, setNotes] = useState<string[] | null>(null);
   const box = useRef<HTMLDivElement>(null);
+  // The opening viewport fits the cards, computed from the file before the first render. React Flow's
+  // fitView would first render every card at zoom 1 (one CodeMirror each) and only then zoom out.
+  const [viewport, setViewport] = useState<Viewport | null>(null);
+  useLayoutEffect(() => {
+    const { width, height } = box.current!.getBoundingClientRect();
+    const ns = init?.nodes ?? [];
+    setViewport(ns.length ? getViewportForBounds(getNodesBounds(ns), width, height, 0.1, 1, 0.1) : { x: 0, y: 0, zoom: 1 });
+  }, [init]);
   const { screenToFlowPosition } = useReactFlow();
 
   // Selection and measuring change the nodes but not the file; only real edits are written.
+  // Not during a drag: every pointer move would serialise the whole canvas; the drop writes once.
   useEffect(() => {
-    if (!init) return;
+    if (!init || nodes.some((n) => n.dragging)) return;
     const s = serializeCanvas(doc, nodes, edges);
     if (s !== saved.current) {
       saved.current = s;
@@ -172,45 +187,47 @@ function Canvas({ text, onChange }: { text: string; onChange: (text: string) => 
           />
         )}
       </div>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        onNodesChange={(c) => setNodes((ns) => applyNodeChanges(c, ns))}
-        onEdgesChange={(c) => setEdges((es) => applyEdgeChanges(c, es))}
-        onConnect={(c) =>
-          setEdges((es) => [
-            ...es,
-            styleEdge(
-              toFlowEdge({
-                id: newId(),
-                fromNode: c.source,
-                fromSide: (c.sourceHandle ?? undefined) as Side | undefined,
-                toNode: c.target,
-                toSide: (c.targetHandle ?? undefined) as Side | undefined,
-              }),
-            ),
-          ])
-        }
-        connectionMode={ConnectionMode.Loose}
-        deleteKeyCode={active ? ["Backspace", "Delete"] : null}
-        zoomOnDoubleClick={false}
-        minZoom={0.1}
-        fitView
-        fitViewOptions={{ maxZoom: 1 }}
-        colorMode="dark"
-        onDragOver={(e) => {
-          if (e.dataTransfer.types.includes("text/plain")) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "copy";
+      {viewport && (
+        <ReactFlow
+          defaultViewport={viewport}
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          onNodesChange={(c) => setNodes((ns) => applyNodeChanges(c, ns))}
+          onEdgesChange={(c) => setEdges((es) => applyEdgeChanges(c, es))}
+          onConnect={(c) =>
+            setEdges((es) => [
+              ...es,
+              styleEdge(
+                toFlowEdge({
+                  id: newId(),
+                  fromNode: c.source,
+                  fromSide: (c.sourceHandle ?? undefined) as Side | undefined,
+                  toNode: c.target,
+                  toSide: (c.targetHandle ?? undefined) as Side | undefined,
+                }),
+              ),
+            ])
           }
-        }}
-        onDrop={onDrop}
-      >
-        <Background />
-        <Controls />
-      </ReactFlow>
+          connectionMode={ConnectionMode.Loose}
+          deleteKeyCode={active ? ["Backspace", "Delete"] : null}
+          zoomOnDoubleClick={false}
+          minZoom={0.1}
+          colorMode="dark"
+          onlyRenderVisibleElements
+          onDragOver={(e) => {
+            if (e.dataTransfer.types.includes("text/plain")) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+            }
+          }}
+          onDrop={onDrop}
+        >
+          <Background />
+          <Controls />
+        </ReactFlow>
+      )}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { usePapers } from "./papers";
 import { HighlightsPanel } from "./pdf/HighlightsPanel";
 import { PdfPane } from "./pdf/PdfPane";
 import { RightPane } from "./RightPane";
+import { useShallow } from "zustand/react/shallow";
 import { type SidebarTab, useUI } from "./store";
 import { chooseVault, flushAll, openVault, savedVault } from "./vault";
 import "./App.css";
@@ -65,7 +66,10 @@ function Workspace() {
     ];
     return () => unlisten.forEach((u) => u.then((f) => f()));
   }, []);
-  const { sidebarOpen, sidebarTab, setSidebarOpen, setSidebarTab } = useUI();
+  // Only what the shell shows: subscribing to the whole store re-rendered every pane on each jump/insert.
+  const { sidebarOpen, sidebarTab, setSidebarOpen, setSidebarTab } = useUI(
+    useShallow((s) => ({ sidebarOpen: s.sidebarOpen, sidebarTab: s.sidebarTab, setSidebarOpen: s.setSidebarOpen, setSidebarTab: s.setSidebarTab })),
+  );
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === "\\") setSidebarOpen(!useUI.getState().sidebarOpen);

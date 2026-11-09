@@ -31,6 +31,7 @@
     "zustand": "^5.1.0"
   },
   "devDependencies": {
+    "@lezer/markdown": "^1.8.1",
     "@tauri-apps/cli": "^2",
     "@types/katex": "^0.16.8",
     "@types/react": "^19.1.8",

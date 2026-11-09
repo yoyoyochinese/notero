@@ -65,3 +65,13 @@
 - Fix: `dragDropEnabled: false`; PDF drop import moved to an HTML5 capture-phase listener reading the dropped `File`; import writes bytes with `writeFile` instead of `copyFile`. pdf.js detaches the buffer it parses, so it gets a copy (`bytes.slice()`).
 - Harness: new `drop.mjs` (file drop imports, non-empty PDF, single drop opens) + existing drag-into-note check pass. WKWebView itself still needs the user's confirmation.
 - Lesson: the Wave 1 workers flagged this exact risk; it should have been tested in the real app before building more on top. The harness can't reproduce WebView/native-layer behaviour.
+
+## Optimization phase (2026-11-09)
+
+- Measured before changing anything: harness benchmark (`bench.mjs`) on the production build with a big vault (300 papers, 3000-line note, 300-card canvas), CDP main-thread time, IPC call counts; release `.app` size and idle footprint via `footprint`.
+- Profiling found what the code alone wouldn't have told: canvas drag spent its time in style/layout/paint, not our JS (except the per-frame serialisation); opening a big canvas created one CodeMirror per card; `markdown()` dragged in lang-html/css/autocomplete.
+- Correction: lazy-loading the PDF pane and canvas with `React.lazy` made their first open ~300 ms slower (React 19's Suspense reveal throttle; seen as 300 ms between chunk load and mount) with no measurable startup gain → reverted. KaTeX stays lazy (no Suspense).
+- Correction: `serde_json` can't be removed — `tauri::generate_context!` expands to code using it.
+- Results (baseline → final, harness numbers are CPU ms): canvas open 480 → 93 (wall 527 → 133); 30-step card drag 1660 → 680; typing 40 keys in the long note 280 → 246; startup IPC calls 913 → 610; IPC per save 6 → 4; JS heap after the run 68 → 47 MB; main JS 1.9 → 1.46 MB; dist 4.3 → 3.4 MB; release app 9.19 → 7.26 MiB (binary 9.5 → 7.5 MB). Idle footprint (welcome screen) didn't change measurably: repeated runs vary by ±10 MB (main 30–38 MB, WebContent 50–70 MB).
+- Limits: headless Chromium paints in software, so paint-heavy numbers (drag) overstate what WKWebView with GPU compositing does; the mock IPC is serial, so parallel paper loading shows no wall-time gain in the harness (it should in the real app, where Rust handles calls concurrently).
+- Correction (my own): I thought building the Language with a fresh `defineLanguageFacet()` broke lang-markdown's list keymap (it checks `markdownLanguage.isActiveAt`). A probe showed it still worked — the parser derived from `commonmarkLanguage.parser` keeps lang-markdown's language data on its top node. Switched to `commonmarkLanguage.data` anyway (explicit) and kept the Enter-continues-list test as a guard, but it was not a real regression.

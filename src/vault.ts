@@ -29,9 +29,14 @@ export class ConflictError extends Error {
   }
 }
 
+// One IPC call in the common case; `exists` only runs to tell "missing" apart from a real error.
 export async function mtimeOf(rel: string): Promise<number | null> {
-  if (!(await exists(abs(rel)))) return null;
-  return (await stat(abs(rel))).mtime?.getTime() ?? null;
+  try {
+    return (await stat(abs(rel))).mtime?.getTime() ?? null;
+  } catch (err) {
+    if (!(await exists(abs(rel)))) return null;
+    throw err;
+  }
 }
 
 export async function readText(rel: string) {
@@ -64,8 +69,12 @@ export const writeJson = (rel: string, data: unknown, expectedMtime?: number | n
 
 /** Visible entries of a vault folder (dotfiles skipped). Missing folder = empty. */
 export async function listDir(rel: string) {
-  if (!(await exists(abs(rel)))) return [];
-  return (await readDir(abs(rel))).filter((e) => !e.name.startsWith("."));
+  try {
+    return (await readDir(abs(rel))).filter((e) => !e.name.startsWith("."));
+  } catch (err) {
+    if (!(await exists(abs(rel)))) return [];
+    throw err;
+  }
 }
 
 /** First free "<dir>/<base>.<ext>", then "<base> 1.<ext>", "<base> 2.<ext>"... (Obsidian style). */

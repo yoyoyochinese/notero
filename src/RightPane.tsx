@@ -3,11 +3,14 @@ import { CanvasEditor } from "./canvas/CanvasEditor";
 import { openPaperCanvas } from "./library/showPaper";
 import { NoteEditor } from "./notes/NoteEditor";
 import { usePapers } from "./papers";
+import { useShallow } from "zustand/react/shallow";
 import { useUI } from "./store";
 import { createFile } from "./vault";
 
 export function RightPane() {
-  const { rightTab, setRightTab, notePath, canvasPath, citekey } = useUI();
+  const { rightTab, setRightTab, notePath, canvasPath, citekey } = useUI(
+    useShallow((s) => ({ rightTab: s.rightTab, setRightTab: s.setRightTab, notePath: s.notePath, canvasPath: s.canvasPath, citekey: s.citekey })),
+  );
   const path = rightTab === "note" ? notePath : canvasPath;
   // Canvas tab with a paper open but no canvas: the paper's own canvas, created on first use.
   useEffect(() => {

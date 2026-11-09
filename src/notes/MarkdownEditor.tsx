@@ -1,13 +1,12 @@
 // Controlled CodeMirror 6 Markdown editor with Obsidian-style live preview: markup is hidden
 // and math rendered everywhere except on the lines holding the cursor/selection (when focused).
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { markdown } from "@codemirror/lang-markdown";
-import { syntaxTree } from "@codemirror/language";
-import { Annotation, Compartment, EditorState, type Range, StateEffect, StateField } from "@codemirror/state";
+import { commonmarkLanguage, markdownKeymap } from "@codemirror/lang-markdown";
+import type { MarkdownParser } from "@lezer/markdown";
+import { Language, syntaxTree } from "@codemirror/language";
+import { Annotation, Compartment, EditorState, Prec, type Range, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, type DecorationSet, drawSelection, dropCursor, EditorView, keymap, WidgetType } from "@codemirror/view";
 import { message } from "@tauri-apps/plugin-dialog";
-import katex from "katex";
-import "katex/dist/katex.min.css";
 import { type RefObject, useEffect, useRef } from "react";
 import { followLink, openWikilink } from "./links";
 import "./notes.css";
@@ -23,9 +22,12 @@ type Props = {
 
 const closingMath = /\$\$\s*$/;
 
-/** Markdown plus [[wikilinks]], $inline$ / $$inline display$$ math, and $$ ... $$ math blocks. */
-export const language = markdown({
-  extensions: {
+/**
+ * Markdown plus [[wikilinks]], $inline$ / $$inline display$$ math, and $$ ... $$ math blocks.
+ * Built on commonmarkLanguage rather than markdown(): markdown() always bundles lang-html, lang-css and
+ * autocomplete (~430 KB) for HTML tags in Markdown, which notes don't need. The list keymap is added below.
+ */
+const parser = (commonmarkLanguage.parser as MarkdownParser).configure({
   defineNodes: ["WikiLink", "InlineMath", "BlockMath"],
   parseInline: [
     {
@@ -62,8 +64,14 @@ export const language = markdown({
       endLeaf: (_, line) => line.text.startsWith("$$", line.pos),
     },
   ],
-  },
 });
+// Same language-data facet as lang-markdown's languages: its list keymap checks markdownLanguage.isActiveAt().
+export const language = [new Language(commonmarkLanguage.data, parser, [], "markdown"), Prec.high(keymap.of(markdownKeymap))];
+
+// KaTeX (~270 KB plus fonts) loads with the first formula on screen, not at startup.
+let katexLoad: Promise<(typeof import("katex"))["default"]> | undefined;
+const loadKatex = () =>
+  (katexLoad ??= Promise.all([import("katex"), import("katex/dist/katex.min.css")]).then(([m]) => m.default));
 
 class MathWidget extends WidgetType {
   constructor(
@@ -75,10 +83,14 @@ class MathWidget extends WidgetType {
   eq(other: MathWidget) {
     return other.tex === this.tex && other.display === this.display;
   }
-  toDOM() {
+  toDOM(view: EditorView) {
     const el = document.createElement(this.display ? "div" : "span");
     el.className = this.display ? "cm-md-math-block" : "cm-md-math";
-    katex.render(this.tex, el, { displayMode: this.display, throwOnError: false });
+    el.textContent = this.tex; // until KaTeX is loaded (first formula only)
+    loadKatex().then((katex) => {
+      katex.render(this.tex, el, { displayMode: this.display, throwOnError: false });
+      view.requestMeasure(); // the widget's height changed
+    }, console.error);
     return el;
   }
   ignoreEvent() {

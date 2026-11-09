@@ -1,4 +1,5 @@
 import { ensureSyntaxTree } from "@codemirror/language";
+import { insertNewlineContinueMarkup } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
 import { expect, test } from "vitest";
 import { paragraphInsert } from "./insert";
@@ -60,4 +61,12 @@ test("live preview hides markup and renders math except on the cursor line", () 
     "**here**:cm-md-strong",
     "**:cm-md-mark",
   ]);
+});
+
+test("Enter continues a list (lang-markdown's keymap recognises our language)", () => {
+  const doc = "- first";
+  let state = EditorState.create({ doc, extensions: [language], selection: { anchor: doc.length } });
+  ensureSyntaxTree(state, state.doc.length, 1000);
+  insertNewlineContinueMarkup({ state, dispatch: (tr) => (state = tr.state) });
+  expect(state.doc.toString()).toBe("- first\n- ");
 });

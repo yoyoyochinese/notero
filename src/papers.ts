@@ -24,16 +24,20 @@ export const usePapers = create<State>((set, get) => ({
 
   load: async () => {
     const papers: Record<string, Paper> = {};
-    for (const e of await listDir("papers")) {
-      if (!e.isDirectory) continue;
-      try {
-        const { data, mtime } = await readJson<PaperFile>(jsonPath(e.name));
-        papers[e.name] = { ...data, citekey: e.name };
-        mtimes[e.name] = mtime;
-      } catch (err) {
-        console.warn(`skipping papers/${e.name}:`, err);
-      }
-    }
+    // All paper.json reads in flight at once: startup is bound by IPC round trips, not by work.
+    await Promise.all(
+      (await listDir("papers"))
+        .filter((e) => e.isDirectory)
+        .map(async (e) => {
+          try {
+            const { data, mtime } = await readJson<PaperFile>(jsonPath(e.name));
+            papers[e.name] = { ...data, citekey: e.name };
+            mtimes[e.name] = mtime;
+          } catch (err) {
+            console.warn(`skipping papers/${e.name}:`, err);
+          }
+        }),
+    );
     set({ papers });
   },
 

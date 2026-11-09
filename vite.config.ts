@@ -3,9 +3,19 @@ import react from "@vitejs/plugin-react";
 import process from "node:process";
 const host = process.env.TAURI_DEV_HOST;
 
+// KaTeX's CSS lists woff2, woff and ttf for every font; WebKit only ever loads woff2, so the rest
+// would just sit in the app bundle (~700 KB). Runs before Vite resolves the CSS url()s.
+const katexWoff2Only = {
+  name: "katex-woff2-only",
+  enforce: "pre" as const,
+  transform(code: string, id: string) {
+    if (/katex.*\.css$/.test(id)) return code.replace(/,\s*url\([^)]+\.(?:woff|ttf)\)\s*format\("(?:woff|truetype)"\)/g, "");
+  },
+};
+
 // https://vite.dev/config/
 export default defineConfig(() => ({
-  plugins: [react()],
+  plugins: [react(), katexWoff2Only],
   // Agent worktrees live under .claude/; don't pick up their copies of the tests.
   test: { exclude: ["**/node_modules/**", ".claude/**"] },
 
