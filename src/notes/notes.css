@@ -1,0 +1,53 @@
+/* Live preview */
+.md-editor .cm-md-h1 { font-size: 1.6em; font-weight: 700; }
+.md-editor .cm-md-h2 { font-size: 1.4em; font-weight: 700; }
+.md-editor .cm-md-h3 { font-size: 1.2em; font-weight: 700; }
+.md-editor .cm-md-h4 { font-size: 1.1em; font-weight: 700; }
+.md-editor .cm-md-h5 { font-weight: 700; }
+.md-editor .cm-md-h6 { font-weight: 700; color: var(--fg-muted); }
+.md-editor .cm-md-strong { font-weight: 700; }
+.md-editor .cm-md-em { font-style: italic; }
+.md-editor .cm-md-mark { color: var(--fg-muted); }
+.md-editor .cm-md-link { color: var(--accent); }
+.md-editor .cm-md-link[data-href],
+.md-editor .cm-md-link[data-wiki] { cursor: pointer; }
+.md-editor .cm-md-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  background: var(--bg-alt);
+  border-radius: 3px;
+}
+.md-editor .cm-line.cm-md-quote {
+  border-left: 3px solid var(--border);
+  padding-left: 12px;
+  color: var(--fg-muted);
+}
+.md-editor .cm-md-math-block { text-align: center; }
+
+/* Note tab */
+.note-editor { height: 100%; display: flex; flex-direction: column; }
+.note-editor .md-editor { flex: 1; min-height: 0; }
+.note-editor .cm-editor { height: 100%; }
+.note-editor .cm-content { min-height: 100%; padding: 16px 20px; }
+
+/* Note list */
+.note-list-head { padding: 6px; }
+.note-list ul { list-style: none; margin: 0; padding: 0; }
+.note-list li { display: flex; align-items: center; gap: 4px; padding: 0 6px; }
+.note-list li:hover,
+.note-list li[aria-current="true"] { background: var(--bg); }
+.note-list li[aria-current="true"] .note-list-name { color: var(--accent); }
+.note-list-name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  border: none !important;
+  background: none !important;
+  padding: 3px 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.note-list input { flex: 1; min-width: 0; font: inherit; margin: 2px 0; }
+.note-list-delete { visibility: hidden; border: none; background: none; color: var(--fg-muted); }
+.note-list li:hover .note-list-delete { visibility: visible; }
