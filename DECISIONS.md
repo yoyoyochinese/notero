@@ -91,6 +91,8 @@ Every worker reads this before starting. Numbered; never renumber. Phase: G = gr
 56. **Theme: Ayu Mirage** (user request), always — replaces following the OS light/dark (that part of decision 18). Colours from the official `ayu` package (`themes/mirage.yaml`): editor bg `#242936`, UI bg `#1f2430`, fg `#cccac2`, muted `#707a8c`, accent `#ffcc66`, links `#5ccfe6`, selection `#409fff40`. Canvas presets 1–6 use Ayu's red/orange/yellow/green/cyan/purple. PDF pages stay white.
 57. **Canvas colours** (user: "背景色を変えられるように"): each canvas has a background colour, saved in the `.canvas` as `"notero": { "background": … }` (our namespace; Obsidian ignores it). Presets are 22 % tints of the theme background (full-strength presets made cards unreadable); a colour from the native picker is used as is. Selected cards and arrows can be coloured too (the JSON Canvas `color` field Obsidian uses).
 
+58. **`dragDropEnabled: false`** on the window. With Tauri's drop handler on, wry swallows every native drag on macOS (`perform_drag_operation` returns before WebKit), so in-app HTML5 drops (highlight → note/canvas) never fired — confirmed in wry 0.57 source and by the user. PDFs dropped on the window are now imported from the HTML5 `File` (bytes, no path); this also lifts the fs-scope limit on where a dropped PDF may come from. Supersedes the drop mechanism in decisions 5 and 40.
+
 ## Open
 
-1. **Hands-on check of the real app** (highlight drag into note/canvas under Tauri's file-drop handler, selection rects on a real paper, live CrossRef/arXiv, quit flush). The same flows pass in a Chromium harness with mocked Tauri APIs; WKWebView is unverified. — needs the user.
+1. **Hands-on check of the real app** (highlight drop after decision 58, PDF drop import, selection rects on a real paper, live CrossRef/arXiv, quit flush). The same flows pass in a Chromium harness with mocked Tauri APIs; WKWebView is unverified. — needs the user.

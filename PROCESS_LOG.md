@@ -58,3 +58,10 @@
 - Correction: with the sidebar collapsed, its hidden toggle button was still in the accessibility tree (two "Show sidebar" buttons) → the collapsed panel's content gets `hidden`, still mounted so it keeps its state.
 - Interpretation recorded: "背景色" implemented as the canvas background plus card/arrow colours; reported to the user.
 - Tests: 41.
+
+## Fix: highlight drop (2026-11-09)
+
+- User: drag starts but drop never lands (the risk flagged since Wave 1). Root cause read in wry 0.57 `wkwebview/drag_drop.rs`: when Tauri's handler is registered it answers every `draggingUpdated`/`performDragOperation` itself, so WebKit never fires HTML5 `dragover`/`drop`, for internal drags too.
+- Fix: `dragDropEnabled: false`; PDF drop import moved to an HTML5 capture-phase listener reading the dropped `File`; import writes bytes with `writeFile` instead of `copyFile`. pdf.js detaches the buffer it parses, so it gets a copy (`bytes.slice()`).
+- Harness: new `drop.mjs` (file drop imports, non-empty PDF, single drop opens) + existing drag-into-note check pass. WKWebView itself still needs the user's confirmation.
+- Lesson: the Wave 1 workers flagged this exact risk; it should have been tested in the real app before building more on top. The harness can't reproduce WebView/native-layer behaviour.

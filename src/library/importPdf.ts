@@ -1,7 +1,6 @@
 // PDF import: copy into papers/<citekey>/paper.pdf with metadata (DECISIONS.md 4–6, 21).
 import { useEffect } from "react";
-import { getCurrentWebview } from "@tauri-apps/api/webview";
-import { copyFile, mkdir, readFile, remove } from "@tauri-apps/plugin-fs";
+import { mkdir, readFile, remove, writeFile } from "@tauri-apps/plugin-fs";
 import { fetch } from "@tauri-apps/plugin-http";
 import { create } from "zustand";
 import { usePapers } from "../papers";
@@ -15,11 +14,15 @@ import { findIds, makeCitekey, type Meta, parseArxiv, parseCrossref, splitName }
 /** Import progress, global so the drop hook can live outside the Library panel. */
 export const useImports = create<{ pending: number; errors: string[] }>(() => ({ pending: 0, errors: [] }));
 
+/** A path from the file dialog, or a File dropped on the window (no path, just its bytes). */
+type Source = string | File;
+const nameOf = (src: Source) => (typeof src === "string" ? src.slice(src.lastIndexOf("/") + 1) : src.name);
+
 // One import at a time across all calls: the duplicate check and citekey choice only see finished imports.
 let queue = Promise.resolve();
-export const importPdfs = (paths: string[]) => (queue = queue.then(() => importAll(paths)));
+export const importPdfs = (sources: Source[]) => (queue = queue.then(() => importAll(sources)));
 
-async function importAll(paths: string[]) {
+async function importAll(paths: Source[]) {
   for (const path of paths) {
     useImports.setState((s) => ({ pending: s.pending + 1 }));
     try {
@@ -28,33 +31,32 @@ async function importAll(paths: string[]) {
       if (paths.length === 1) await showPaper(citekey);
     } catch (err) {
       console.error("import failed", path, err);
-      useImports.setState((s) => ({ errors: [...s.errors, `${basename(path)}: ${err}`] }));
+      useImports.setState((s) => ({ errors: [...s.errors, `${nameOf(path)}: ${err}`] }));
     } finally {
       useImports.setState((s) => ({ pending: s.pending - 1 }));
     }
   }
 }
 
-const basename = (path: string) => path.slice(path.lastIndexOf("/") + 1);
 const same = (a?: string, b?: string) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 
-async function importPdf(path: string): Promise<{ citekey: string; duplicate: boolean }> {
-  const bytes = await readFile(path);
+async function importPdf(src: Source): Promise<{ citekey: string; duplicate: boolean }> {
+  const bytes = typeof src === "string" ? await readFile(src) : new Uint8Array(await src.arrayBuffer());
   const hash = await crypto.subtle.digest("SHA-256", bytes);
   const sha256 = [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
   const papers = Object.values(usePapers.getState().papers);
   const bySha = papers.find((p) => p.sha256 === sha256);
   if (bySha) return { citekey: bySha.citekey, duplicate: true };
 
-  const meta = await readMeta(bytes, basename(path));
+  const meta = await readMeta(bytes.slice(), nameOf(src)); // pdf.js detaches the buffer it is given
   const dup = papers.find((p) => same(p.doi, meta.doi) || same(p.arxiv, meta.arxiv));
   if (dup) return { citekey: dup.citekey, duplicate: true };
 
   const taken = new Set((await listDir("papers")).map((e) => e.name));
-  const citekey = makeCitekey(meta, basename(path), taken);
+  const citekey = makeCitekey(meta, nameOf(src), taken);
   await mkdir(abs(`papers/${citekey}`));
   try {
-    await copyFile(path, abs(`papers/${citekey}/paper.pdf`));
+    await writeFile(abs(`papers/${citekey}/paper.pdf`), bytes);
     const file: PaperFile = { ...meta, sha256, addedAt: new Date().toISOString(), highlights: [] };
     await usePapers.getState().add(citekey, file);
   } catch (err) {
@@ -106,16 +108,33 @@ async function lookup({ doi, arxiv }: { doi?: string; arxiv?: string }): Promise
   return null;
 }
 
-/** Imports PDFs dropped anywhere on the window. Tauri's drop event is the only way to get file paths. */
+/**
+ * Imports PDFs dropped anywhere on the window. Tauri's own drop handler is off (dragDropEnabled: false):
+ * on macOS it swallows every drag, so highlight drags inside the app could never drop.
+ * Capture phase, so the note editor and canvas never see file drops.
+ */
 export function usePdfDropImport() {
   useEffect(() => {
-    const unlisten = getCurrentWebview().onDragDropEvent((e) => {
-      if (e.payload.type !== "drop") return;
-      const pdfs = e.payload.paths.filter((p) => p.toLowerCase().endsWith(".pdf"));
+    const hasFiles = (e: DragEvent) => !!e.dataTransfer?.types.includes("Files");
+    const over = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault(); // otherwise WebKit navigates to the dropped file
+      e.dataTransfer!.dropEffect = "copy";
+    };
+    const drop = (e: DragEvent) => {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const pdfs = [...e.dataTransfer!.files].filter((f) => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
       if (!pdfs.length) return;
       useUI.getState().setSidebarTab("library");
       importPdfs(pdfs);
-    });
-    return () => void unlisten.then((f) => f());
+    };
+    window.addEventListener("dragover", over, true);
+    window.addEventListener("drop", drop, true);
+    return () => {
+      window.removeEventListener("dragover", over, true);
+      window.removeEventListener("drop", drop, true);
+    };
   }, []);
 }
