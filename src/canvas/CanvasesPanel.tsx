@@ -1,4 +1,5 @@
 // Sidebar "Canvases" tab: canvases/*.canvas with new, rename and delete.
+import { ask, message } from "@tauri-apps/plugin-dialog";
 import { useEffect, useState } from "react";
 import { useUI } from "../store";
 import { createFile, listDir, moveFile, trash } from "../vault";
@@ -32,16 +33,16 @@ export function CanvasesPanel() {
     setRenaming(null);
     const next = input.trim().replace(/\.canvas$/, "");
     if (!next || next === base(name)) return;
-    if (next.includes("/")) return alert("A canvas name can't contain “/”.");
+    if (next.includes("/")) return message("A canvas name can't contain “/”.", { kind: "warning" });
     const from = `canvases/${name}`;
     const to = `canvases/${next}.canvas`;
-    if (!(await moveFile(from, to))) return alert(`“${next}.canvas” already exists.`);
+    if (!(await moveFile(from, to))) return message(`“${next}.canvas” already exists.`, { kind: "warning" });
     if (useUI.getState().canvasPath === from) useUI.setState({ canvasPath: to });
     refresh();
   }
 
   async function remove(name: string) {
-    if (!confirm(`Move “${base(name)}” to the Trash?`)) return;
+    if (!(await ask(`Move “${base(name)}” to the Trash?`, { kind: "warning" }))) return;
     const path = `canvases/${name}`;
     await trash(path);
     if (useUI.getState().canvasPath === path) useUI.setState({ canvasPath: null });
