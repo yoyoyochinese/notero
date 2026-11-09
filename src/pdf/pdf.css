@@ -1,0 +1,185 @@
+.pdf-header {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pdf-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.pdf-page {
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+  margin-right: 4px;
+}
+
+.pdf-header button[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+
+.pdf-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.pdf-main {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+/* PDFViewer requires an absolutely positioned scroll container. */
+.pdf-scroll {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  background: var(--bg-alt);
+}
+
+/* App.css sets border-box globally; pdf.js lays out pages assuming the default. */
+.pdf-scroll * {
+  box-sizing: content-box;
+}
+
+.pdf-scroll .pdfViewer {
+  padding-top: 10px;
+}
+
+.pdf-scroll .page {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.pdf-error {
+  position: absolute;
+  inset: 0;
+}
+
+/* Under the text layer so text stays selectable; clicks are hit-tested in PdfPane. */
+.hl-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+.hl {
+  position: absolute;
+}
+
+.hl.flash {
+  animation: hl-flash 0.5s ease-in-out 3;
+}
+
+@keyframes hl-flash {
+  50% {
+    outline: 3px solid var(--accent);
+    filter: saturate(3);
+  }
+}
+
+.hl-list {
+  width: 240px;
+  flex: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: auto;
+  border-left: 1px solid var(--border);
+}
+
+.hl-list li {
+  display: flex;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.hl-list li:hover {
+  background: var(--bg-alt);
+}
+
+.hl-swatch {
+  flex: none;
+  width: 4px;
+  border-radius: 2px;
+}
+
+.hl-item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hl-excerpt {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hl-comment {
+  color: var(--fg-muted);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.hl-pageno {
+  flex: none;
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+.pdf-popup {
+  position: fixed;
+  z-index: 100;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  max-width: 300px;
+  padding: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.pdf-popup .swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.pdf-popup .swatch[aria-pressed="true"] {
+  outline: 2px solid var(--fg);
+}
+
+.pdf-popup textarea {
+  width: 100%;
+  min-height: 70px;
+  font: inherit;
+  color: inherit;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.pdf-popup-actions {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+}
