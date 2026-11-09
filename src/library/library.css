@@ -1,0 +1,144 @@
+.lib-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+}
+
+.lib-toolbar input,
+.lib-toolbar select,
+.lib-dialog input,
+.lib-dialog textarea {
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+.lib-toolbar input {
+  flex: 1 0 100%;
+}
+
+.lib-status {
+  margin: 0 6px 6px;
+  padding: 4px 8px;
+  color: var(--fg-muted);
+}
+
+.lib-error {
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+
+.lib-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lib-list li {
+  border-top: 1px solid var(--border);
+}
+
+.lib-list li.current {
+  background: var(--bg);
+}
+
+.lib-row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.lib-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 6px 8px;
+}
+
+.lib-title {
+  font-weight: 500;
+}
+
+.lib-meta {
+  color: var(--fg-muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lib-actions {
+  display: flex;
+  padding: 6px 4px 0 0;
+  visibility: hidden;
+}
+
+.lib-row:hover .lib-actions,
+.lib-actions:focus-within,
+.lib-actions button[aria-expanded="true"] {
+  visibility: visible;
+}
+
+.lib-actions button {
+  border: none;
+  background: none;
+  color: var(--fg-muted);
+  padding: 0 4px;
+}
+
+.lib-notes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0 8px 8px 20px;
+}
+
+.lib-note {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  text-align: left;
+}
+
+.lib-dialog {
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: min(480px, 90vw);
+}
+
+.lib-dialog h3 {
+  margin: 0;
+}
+
+.lib-dialog form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lib-dialog label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.lib-dialog-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
