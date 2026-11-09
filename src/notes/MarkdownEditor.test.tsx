@@ -66,7 +66,7 @@ test("insert-mode arrow keys stop on a formula's lines instead of jumping over t
   Vim.handleKey(getCM(v)!, "i", "user");
   // No layout in happy-dom: stand in for CodeMirror's vertical motion skipping the rendered block (line 1 → 5).
   const { EditorSelection } = await import("@codemirror/state");
-  v.moveVertically = (r, forward) => EditorSelection.cursor(v.state.doc.line(forward ? 5 : 1).from);
+  v.moveVertically = (_r, forward) => EditorSelection.cursor(v.state.doc.line(forward ? 5 : 1).from);
   const press = (key: string) => v.contentDOM.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
   const line = () => v.state.doc.lineAt(v.state.selection.main.head).number;
   press("ArrowDown");
