@@ -33,7 +33,8 @@ export function CanvasesPanel() {
     setRenaming(null);
     const next = input.trim().replace(/\.canvas$/, "");
     if (!next || next === base(name)) return;
-    if (next.includes("/")) return message("A canvas name can't contain “/”.", { kind: "warning" });
+    if (next.includes("/") || next.startsWith("."))
+      return message("A canvas name can't contain “/” or start with “.”.", { kind: "warning" });
     const from = `canvases/${name}`;
     const to = `canvases/${next}.canvas`;
     if (!(await moveFile(from, to))) return message(`“${next}.canvas” already exists.`, { kind: "warning" });
@@ -44,7 +45,11 @@ export function CanvasesPanel() {
   async function remove(name: string) {
     if (!(await ask(`Move “${base(name)}” to the Trash?`, { kind: "warning" }))) return;
     const path = `canvases/${name}`;
-    await trash(path);
+    try {
+      await trash(path);
+    } catch (err) {
+      return message(`Could not move “${base(name)}” to the Trash: ${err}`, { kind: "error" });
+    }
     if (useUI.getState().canvasPath === path) useUI.setState({ canvasPath: null });
     refresh();
   }

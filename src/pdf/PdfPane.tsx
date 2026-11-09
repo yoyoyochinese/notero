@@ -11,7 +11,7 @@ import { usePapers } from "../papers";
 import { formatQuote, HIGHLIGHT_MIME } from "../quote";
 import { useUI } from "../store";
 import type { Highlight, HighlightColor, Paper } from "../types";
-import { abs, createFile } from "../vault";
+import { abs, createFile, flushers } from "../vault";
 import { byPosition, hitTest, newHighlightId, toPageRects } from "./geometry";
 import "./pdf.css";
 
@@ -317,7 +317,13 @@ function EditPopup(props: { paper: Paper; id: string; x: number; y: number; focu
     return cur && cur.comment !== latest.current ? editHighlight(paper.citekey, id, { comment: latest.current }) : Promise.resolve();
   };
   // The comment is saved when the popup closes, however it closes.
-  useEffect(() => () => void saveComment().catch(console.error), []);
+  useEffect(() => {
+    flushers.add(saveComment); // also on app quit
+    return () => {
+      flushers.delete(saveComment);
+      saveComment().catch(console.error);
+    };
+  }, []);
 
   if (!h) return null;
   return (

@@ -21,7 +21,8 @@ export function findIds(text: string): { doi?: string; arxiv?: string } {
   const arxiv =
     /\barXiv:\s*(\d{4}\.\d{4,5})/i.exec(text)?.[1] ??
     /arxiv\.org\/(?:abs|pdf)\/(\d{4}\.\d{4,5})/i.exec(text)?.[1] ??
-    /\b([a-z]+(?:-[a-z]+)?(?:\.[A-Z]{2})?\/\d{7})/.exec(text)?.[1];
+    // Old-style IDs only with a real archive name, or "record/4567890" in a URL would match.
+    /\b((?:astro-ph|cond-mat|gr-qc|hep-(?:ex|lat|ph|th)|math-ph|nlin|nucl-(?:ex|th)|physics|quant-ph|math|cs|q-bio|q-fin|stat)(?:\.[A-Z]{2})?\/\d{7})(?!\d)/.exec(text)?.[1];
   const fromDoi = doi && ARXIV_DOI.exec(doi)?.[1].replace(/v\d+$/, "");
   if (fromDoi) return { arxiv: fromDoi };
   return { ...(doi && { doi }), ...(arxiv && { arxiv }) };

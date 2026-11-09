@@ -231,6 +231,9 @@ export function MarkdownEditor({ value, onChange, readOnly = false, className, v
   const view = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  // Texts we emitted whose echo hasn't come back as `value` yet. The parent may hand back a
+  // stale one (React Flow takes several renders); treating it as an outside change would undo typing.
+  const echoes = useRef<string[]>([]);
 
   useEffect(() => {
     const v = new EditorView({
@@ -250,8 +253,12 @@ export function MarkdownEditor({ value, onChange, readOnly = false, className, v
           theme,
           editable.of(editableExt(readOnly)),
           EditorView.updateListener.of((u) => {
-            if (u.docChanged && !u.transactions.some((t) => t.annotation(external)))
-              onChangeRef.current(u.state.doc.toString());
+            if (u.docChanged && !u.transactions.some((t) => t.annotation(external))) {
+              const t = u.state.doc.toString();
+              echoes.current.push(t);
+              if (echoes.current.length > 50) echoes.current.shift();
+              onChangeRef.current(t);
+            }
           }),
         ],
       }),
@@ -268,6 +275,9 @@ export function MarkdownEditor({ value, onChange, readOnly = false, className, v
   }, []);
 
   useEffect(() => {
+    const i = echoes.current.indexOf(value);
+    if (i >= 0) return void echoes.current.splice(0, i + 1);
+    echoes.current = [];
     const v = view.current;
     if (v && value !== v.state.doc.toString())
       v.dispatch({ changes: { from: 0, to: v.state.doc.length, insert: value }, annotations: external.of(true) });

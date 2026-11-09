@@ -110,3 +110,9 @@ test("makeCitekey", () => {
   expect(makeCitekey(vaswani, "x.pdf", new Set(["vaswani2017attention"]))).toBe("vaswani2017attentiona");
   expect(makeCitekey(vaswani, "x.pdf", new Set(["vaswani2017attention", "vaswani2017attentiona"]))).toBe("vaswani2017attentionb");
 });
+
+test("findIds: word/1234567 in URLs is not an old-style arXiv ID", () => {
+  expect(findIds("https://zenodo.org/record/4567890 doi:10.1016/j.cell.2020.01.001")).toEqual({ doi: "10.1016/j.cell.2020.01.001" });
+  expect(findIds("manuscript/2023001")).toEqual({});
+  expect(findIds("arXiv:hep-th/9901001")).toEqual({ arxiv: "hep-th/9901001" });
+});

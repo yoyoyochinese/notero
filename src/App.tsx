@@ -1,3 +1,6 @@
+import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { CanvasesPanel } from "./canvas/CanvasesPanel";
@@ -8,7 +11,7 @@ import { usePapers } from "./papers";
 import { PdfPane } from "./pdf/PdfPane";
 import { RightPane } from "./RightPane";
 import { type SidebarTab, useUI } from "./store";
-import { chooseVault, openVault, savedVault } from "./vault";
+import { chooseVault, flushAll, openVault, savedVault } from "./vault";
 import "./App.css";
 
 const TABS: [SidebarTab, string][] = [
@@ -41,6 +44,15 @@ export default function App() {
 
 function Workspace() {
   usePdfDropImport();
+  // Save what's pending before the window closes or the app quits (Rust waits for "quit").
+  useEffect(() => {
+    const save = () => flushAll().then(() => {}, console.error);
+    const unlisten = [
+      getCurrentWindow().onCloseRequested(save),
+      listen("quit-requested", () => save().finally(() => invoke("quit"))),
+    ];
+    return () => unlisten.forEach((u) => u.then((f) => f()));
+  }, []);
   const { sidebarOpen, sidebarTab, setSidebarOpen, setSidebarTab } = useUI();
   return (
     <div className="app">

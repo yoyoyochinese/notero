@@ -86,7 +86,7 @@ export async function createFile(dir: string, ext: string, content = "") {
 
 /** Open documents register a flush here so their pending edits land before a file is moved or trashed. */
 export const flushers = new Set<() => Promise<unknown>>();
-const flushAll = () => Promise.all([...flushers].map((f) => f()));
+export const flushAll = () => Promise.all([...flushers].map((f) => f()));
 
 /** Renames/moves a file; refuses to replace an existing one. Returns false if the target exists. */
 export async function moveFile(from: string, to: string) {

@@ -70,6 +70,13 @@ Every worker reads this before starting. Numbered; never renumber. Phase: G = gr
 42. **Insert into note** goes at the cursor; if the cursor was never placed (still at position 0) it is appended at the end.
 43. **Canvas text cards** render read-only (draggable) until double-clicked; editing ends when the card is deselected. Delete/Backspace removes canvas cards only while the canvas was the last thing clicked.
 
+44. **Imports run one at a time** (single queue), so duplicate detection and citekey choice always see finished imports. A failed import leaves no folder behind. An unconfirmed arXiv ID never blocks the DOI lookup.
+45. **Quit and window close flush unsaved edits first** (including an open highlight comment); if the webview doesn't answer within 3 s the app quits anyway.
+46. **Deleting a paper closes its open note.** Canvas file cards only open vault-relative paths (no `..`, no absolute paths).
+47. **fs scope also denies** `~/Library/LaunchAgents` and shell startup files (`.zshrc`, `.zprofile`, `.bashrc`, `.bash_profile`, `.profile`).
+
 ## Open
 
-(none)
+1. **CSP** (`tauri.conf.json` has `"csp": null`). Recommended: add a strict CSP (`default-src 'self'`, plus what pdf.js workers, KaTeX fonts and Tauri IPC need). Needs a check in the running app, so not applied blind. — coordinator recommendation, awaiting the user.
+2. **Auto-open a newly imported paper?** Recommended: yes when a single PDF is added, no for multiple. — asked 2026-11-09, awaiting the user.
+3. **Hands-on check of the running app** (drag & drop of highlights into notes/canvas vs Tauri's file-drop handler, selection rects, live CrossRef/arXiv, quit flush). — needs the user.

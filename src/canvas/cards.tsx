@@ -67,7 +67,8 @@ export function TextCard(node: NodeProps<FlowNode>) {
 /** Embedded vault file. Markdown notes show their text read-only; other files only their name. */
 export function FileCard(node: NodeProps<FlowNode>) {
   const file = node.data.file ?? "";
-  const isNote = file.endsWith(".md");
+  // The path comes from the .canvas file, which may be someone else's: stay inside the vault.
+  const isNote = file.endsWith(".md") && !file.startsWith("/") && !file.split("/").some((s) => s === ".." || s === "");
   const [text, setText] = useState<string | null | undefined>(); // undefined = loading, null = missing
   useEffect(() => {
     if (isNote) readText(file).then((r) => setText(r.text), () => setText(null));

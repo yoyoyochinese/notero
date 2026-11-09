@@ -33,3 +33,10 @@
 - `usePdfDropImport` mounted in the app shell; a drop switches to the Library tab. Opening a paper's note shows its PDF. Insert lands at the end when the cursor was never placed. Canvas delete keys scoped to the canvas.
 - Decisions 32–43 recorded.
 - `bun run tauri dev` builds and launches the app with no runtime errors in the log. GUI behaviour (drag & drop, selection rects, live APIs) still needs a hands-on check — the coordinator can't drive the window.
+
+## Review of Waves 1+2 (2026-11-09)
+
+- Fresh-context reviewer: no security hole, no canvas corruption; 4 medium + 3 low + minor. All fixed by the coordinator (decisions 44–47); regression tests for the editor echo bug and arXiv false matches (37 tests).
+- Lesson: a controlled CodeMirror wrapper must tolerate stale echoes of its own text — React Flow returns node data several renders later. Worth remembering for any controlled editor inside React Flow.
+- Lesson: the "flush before close" requirement (decision 37) was only implemented for in-app navigation; app quit is a separate path (Rust `ExitRequested`), easy to miss.
+- CSP hardening recorded as Open: it needs a hands-on check of pdf.js/KaTeX/IPC under the policy.

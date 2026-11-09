@@ -47,7 +47,9 @@ export function LibraryPanel() {
       return;
     }
     usePapers.getState().remove(p.citekey);
-    if (useUI.getState().citekey === p.citekey) useUI.setState({ citekey: null });
+    const ui = useUI.getState();
+    if (ui.citekey === p.citekey) useUI.setState({ citekey: null });
+    if (ui.notePath?.startsWith(`papers/${p.citekey}/`)) useUI.setState({ notePath: null });
   }
 
   return (

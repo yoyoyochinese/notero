@@ -1,7 +1,7 @@
 // PDF import: copy into papers/<citekey>/paper.pdf with metadata (DECISIONS.md 4–6, 21).
 import { useEffect } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
-import { copyFile, mkdir, readFile } from "@tauri-apps/plugin-fs";
+import { copyFile, mkdir, readFile, remove } from "@tauri-apps/plugin-fs";
 import { fetch } from "@tauri-apps/plugin-http";
 import { create } from "zustand";
 import { usePapers } from "../papers";
@@ -14,7 +14,11 @@ import { findIds, makeCitekey, type Meta, parseArxiv, parseCrossref, splitName }
 /** Import progress, global so the drop hook can live outside the Library panel. */
 export const useImports = create<{ pending: number; errors: string[] }>(() => ({ pending: 0, errors: [] }));
 
-export async function importPdfs(paths: string[]) {
+// One import at a time across all calls: the duplicate check and citekey choice only see finished imports.
+let queue = Promise.resolve();
+export const importPdfs = (paths: string[]) => (queue = queue.then(() => importAll(paths)));
+
+async function importAll(paths: string[]) {
   for (const path of paths) {
     useImports.setState((s) => ({ pending: s.pending + 1 }));
     try {
@@ -47,9 +51,15 @@ async function importPdf(path: string): Promise<{ citekey: string; duplicate: bo
   const taken = new Set((await listDir("papers")).map((e) => e.name));
   const citekey = makeCitekey(meta, basename(path), taken);
   await mkdir(abs(`papers/${citekey}`));
-  await copyFile(path, abs(`papers/${citekey}/paper.pdf`));
-  const file: PaperFile = { ...meta, sha256, addedAt: new Date().toISOString(), highlights: [] };
-  await usePapers.getState().add(citekey, file);
+  try {
+    await copyFile(path, abs(`papers/${citekey}/paper.pdf`));
+    const file: PaperFile = { ...meta, sha256, addedAt: new Date().toISOString(), highlights: [] };
+    await usePapers.getState().add(citekey, file);
+  } catch (err) {
+    // Don't leave a folder without paper.json: invisible in the library, yet holding the citekey.
+    await remove(abs(`papers/${citekey}`), { recursive: true }).catch(() => {});
+    throw err;
+  }
   return { citekey, duplicate: false };
 }
 
@@ -82,8 +92,9 @@ async function lookup({ doi, arxiv }: { doi?: string; arxiv?: string }): Promise
   const opts = { connectTimeout: 10_000, signal: AbortSignal.timeout(20_000) };
   if (arxiv) {
     const res = await fetch(`https://export.arxiv.org/api/query?id_list=${encodeURIComponent(arxiv)}`, opts);
-    if (!res.ok) throw new Error(`arXiv: HTTP ${res.status}`);
-    return parseArxiv(await res.text());
+    if (!res.ok && !doi) throw new Error(`arXiv: HTTP ${res.status}`);
+    const meta = res.ok ? parseArxiv(await res.text()) : null;
+    if (meta || !doi) return meta; // unknown arXiv ID: fall through to the DOI
   }
   if (doi) {
     const res = await fetch(`https://api.crossref.org/works/${encodeURIComponent(doi)}`, opts);
