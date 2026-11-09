@@ -1,0 +1,17 @@
+diff --git a/web/pdf_viewer.mjs b/web/pdf_viewer.mjs
+index 8e4a82d3e8cde9f27ee4878534afeed701f1c017..484c6224ab49213df340e527296333b6c7bcb6df 100644
+--- a/web/pdf_viewer.mjs
++++ b/web/pdf_viewer.mjs
+@@ -6318,7 +6318,11 @@ class TextLayerBuilder {
+     this.#selectionChangeAC = new AbortController();
+     const signal = globalAbortSignal ? AbortSignal.any([this.#selectionChangeAC.signal, globalAbortSignal]) : this.#selectionChangeAC.signal;
+     const reset = (end, textLayer) => {
+-      textLayer.append(end);
++      // Notero patch: skip the no-op re-append; it runs for every text layer on every selectionchange
++      // and keyup (i.e. each keystroke in the notes), and costs WebKit a relayout of each text layer.
++      if (end !== textLayer.lastChild) {
++        textLayer.append(end);
++      }
+       end.style.width = "";
+       end.style.height = "";
+       textLayer.classList.remove("selecting");

@@ -39,6 +39,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "pdfjs-dist@6.5.438": "patches/pdfjs-dist@6.5.438.patch",
+  },
   "packages": {
     "@codemirror/autocomplete": ["@codemirror/autocomplete@6.20.4", "", { "dependencies": { "@codemirror/language": "^6.0.0", "@codemirror/state": "^6.0.0", "@codemirror/view": "^6.17.0", "@lezer/common": "^1.0.0" } }, "sha512-yF8RhOf2SXlg00+qtupzLhrglcas61boqaONiNcbPIebHCpJocpqTBA6dyrtUrQO47hqyTdeob/3XnYilT7TaQ=="],
 

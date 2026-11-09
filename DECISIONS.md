@@ -109,6 +109,11 @@ Measured first (harness benchmark on the production build: 300 papers, 3000-line
 65. **Dev-only reload for stateful modules** (`vault.ts`, `papers.ts`, `store.ts`, `importPdf.ts`): a Vite hot update of one of them reloads the page. Cause of the user's "This paper is no longer in the library." after a Finder drop: the hot update left two store instances, and the window's drop listener imported into the old one (reproduced in the harness; the import itself had succeeded on disk). Release builds have no hot updates.
 66. **Logo** (`src/assets/logo.svg`): a page with a yellow highlight linked to a cyan note card, Ayu Mirage colours, macOS icon grid (824 px squircle on 1024). App icons generated with `tauri icon` (desktop sizes only; Android/iOS sets deleted); also shown on the welcome screen.
 
+## Vim and typing lag (2026-11-09)
+
+67. **Vim keybindings** (user request, no on/off switch): `@replit/codemirror-vim` 6.4.0 in every editable Markdown editor (notes and canvas cards being edited); read-only previews get none, else each idle card would draw a vim cursor. Highest precedence so Enter/Backspace in normal mode move instead of running the Markdown list keymap. `:w` flushes the autosave immediately. Editing a canvas card starts in normal mode.
+68. **pdf.js patched** (`patches/pdfjs-dist@6.5.438.patch`, applied by `bun install`): `TextLayerBuilder`'s global `selectionchange`/`keyup` handler re-appended each rendered text layer's end marker even when it already was the last child, i.e. on every keystroke anywhere in the app. In WebKit that cost ~6–7 ms per key with a paper open — about half of the typing cost (measured in Playwright WebKit with a main-thread busy meter, A/B by skipping only that append). The patch skips the no-op; text selection in the PDF behaves the same (checked). Still in pdf.js 6.5.438 (latest); drop the patch when upstream fixes it.
+
 ## Open
 
 1. **Hands-on check of the real app** — confirmed by the user: highlight drop into notes/canvas, metadata lookup. Still open: Finder PDF drop after decision 65, selection rects on real papers, quit flush. The same flows pass in a Chromium harness with mocked Tauri APIs; WKWebView is unverified. — needs the user.

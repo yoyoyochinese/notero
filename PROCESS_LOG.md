@@ -84,3 +84,12 @@
 - Investigation: the vault on disk had the dropped paper's folder with paper.json and paper.pdf, so the import succeeded and the UI read a different store. Reproduced in the harness: after a Vite hot update of `papers.ts` (my edits while the user's `tauri dev` ran), a drop lands in the old store instance. Fix: stateful modules reload the page on hot update (decision 65). Harness `hmr-drop.mjs` now passes after a hot update.
 - Lesson: editing store modules while the user tests in `tauri dev` produces dev-only ghosts; tell the user to reload (⌘R) after such edits, or test in a release build.
 - Logo drawn as SVG, rendered to PNG in the harness's Chromium, icons generated with `tauri icon`.
+
+## Vim mode, typing lag (2026-11-09)
+
+- User: vim keys in notes/canvas (no toggle needed); typing feels slightly heavy — find the causes.
+- Chromium (CDP) said our JS per key was only ~1.5 ms, which didn't explain a felt lag. Installed Playwright WebKit (the engine behind WKWebView) and measured main-thread busy time per key with a message-loop meter (WebKit has no CDP and a 1 ms clock). With a paper open: ~12–13 ms per key; without: ~3–4 ms.
+- A/B by wrapping `document.addEventListener` in an init script: skipping single listeners changed nothing (pdf.js re-appends the text-layer end marker from both `selectionchange` and `keyup`); skipping only the redundant `append` halved the cost. Patched pdf.js (decision 68). Variants that did not matter for normal notes: disabling pdf.js's annotation editor, removing live preview (only matters at 3000 lines: 8.3 → 4.6 ms), not updating React state per key.
+- Results in WebKit, per key, paper open (before → after, median of runs, ±2 ms noise): short note 12.5 → 6; 200-line note 12.6 → 7; 3000-line note 15 → 8.5; 3-card canvas 12.7 → 5; 300-card canvas 21 → 11.
+- Correction: my first vim build showed a vim cursor in every read-only card; vim now lives in the editable compartment.
+- Lesson: measure in the engine the app ships with; Chromium hid the WebKit-specific cost entirely.

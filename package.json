@@ -42,5 +42,8 @@
     "typescript": "~6.0.3",
     "vite": "^8.0.16",
     "vitest": "^5.1.0"
+  },
+  "patchedDependencies": {
+    "pdfjs-dist@6.5.438": "patches/pdfjs-dist@6.5.438.patch"
   }
 }
