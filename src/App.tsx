@@ -14,6 +14,7 @@ import { RightPane } from "./RightPane";
 import { useShallow } from "zustand/react/shallow";
 import { type SidebarTab, useUI } from "./store";
 import { chooseVault, flushAll, openVault, savedVault } from "./vault";
+import logo from "./assets/logo.svg";
 import "./App.css";
 
 // 16px stroke icons; the label shows for the active tab, or for all tabs when the sidebar is wide.
@@ -45,6 +46,7 @@ export default function App() {
   if (!vault)
     return (
       <div className="welcome">
+        <img src={logo} alt="" width={112} height={112} />
         <h1>Notero</h1>
         <p>Pick a folder for your papers, notes and canvases. Obsidian can open the same folder.</p>
         <button className="primary" onClick={async () => setVault(await chooseVault())}>

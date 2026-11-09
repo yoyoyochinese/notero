@@ -52,3 +52,7 @@ export const useUI = create<State>((set) => ({
   requestInsert: (text) => set({ insert: { text, nonce: Date.now() }, rightTab: "note" }),
   clearInsert: () => set({ insert: null }),
 }));
+
+// Dev only: this module holds state (a store, the vault root, a queue). A hot update would leave old and
+// new instances side by side (e.g. a drop imported into the old store), so reload the page instead.
+import.meta.hot?.accept(() => location.reload());

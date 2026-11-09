@@ -104,6 +104,11 @@ Measured first (harness benchmark on the production build: 300 papers, 3000-line
 63. **Shell re-renders**: `App` and `RightPane` subscribe to the store fields they show (`useShallow`) instead of the whole store.
 64. **Not changed, on purpose**: the editor still decorates the whole note on each change (7 ms per keystroke at 3000 lines, within a frame; restrict to `visibleRanges` if long notes lag); pdf.js page cache left at its defaults (can't be measured meaningfully outside the real app).
 
+## After the optimization phase (2026-11-09)
+
+65. **Dev-only reload for stateful modules** (`vault.ts`, `papers.ts`, `store.ts`, `importPdf.ts`): a Vite hot update of one of them reloads the page. Cause of the user's "This paper is no longer in the library." after a Finder drop: the hot update left two store instances, and the window's drop listener imported into the old one (reproduced in the harness; the import itself had succeeded on disk). Release builds have no hot updates.
+66. **Logo** (`src/assets/logo.svg`): a page with a yellow highlight linked to a cyan note card, Ayu Mirage colours, macOS icon grid (824 px squircle on 1024). App icons generated with `tauri icon` (desktop sizes only; Android/iOS sets deleted); also shown on the welcome screen.
+
 ## Open
 
-1. **Hands-on check of the real app** (highlight drop after decision 58, PDF drop import, selection rects on a real paper, live CrossRef/arXiv, quit flush). The same flows pass in a Chromium harness with mocked Tauri APIs; WKWebView is unverified. — needs the user.
+1. **Hands-on check of the real app** — confirmed by the user: highlight drop into notes/canvas, metadata lookup. Still open: Finder PDF drop after decision 65, selection rects on real papers, quit flush. The same flows pass in a Chromium harness with mocked Tauri APIs; WKWebView is unverified. — needs the user.

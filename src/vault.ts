@@ -110,3 +110,7 @@ export async function trash(rel: string) {
   await flushAll();
   await invoke<void>("move_to_trash", { path: abs(rel) });
 }
+
+// Dev only: this module holds state (a store, the vault root, a queue). A hot update would leave old and
+// new instances side by side (e.g. a drop imported into the old store), so reload the page instead.
+import.meta.hot?.accept(() => location.reload());

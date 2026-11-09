@@ -77,3 +77,10 @@
 - Correction (my own): I thought building the Language with a fresh `defineLanguageFacet()` broke lang-markdown's list keymap (it checks `markdownLanguage.isActiveAt`). A probe showed it still worked — the parser derived from `commonmarkLanguage.parser` keeps lang-markdown's language data on its top node. Switched to `commonmarkLanguage.data` anyway (explicit) and kept the Enter-continues-list test as a guard, but it was not a real regression.
 - Fresh-context review of the optimization commit: 1 high, 4 low, all fixed. High: an invalid `.canvas` crashed the window (the new viewport effect read a ref that the error branch never renders). Low: paste-URL-as-link lost with `markdown()`; parallel loading made tie order in the library change per launch; a drag cut short by unmounting was lost; `onlyRenderVisibleElements` hid edges to never-rendered cards — measured it: no gain once zoomed-out cards are plain text, so removed. The reviewer's repros became `invalidCanvas.test.tsx`, `pasteLink.test.ts`, `papers.test.ts` (45 tests).
 - Lesson: "only render what's visible" and "render cheaply when far" overlapped; measuring each separately showed the second made the first redundant.
+
+## Finder drop fix, logo, release build (2026-11-09)
+
+- User: highlight drop works; Finder PDF drop shows "This paper is no longer in the library."; metadata lookup works.
+- Investigation: the vault on disk had the dropped paper's folder with paper.json and paper.pdf, so the import succeeded and the UI read a different store. Reproduced in the harness: after a Vite hot update of `papers.ts` (my edits while the user's `tauri dev` ran), a drop lands in the old store instance. Fix: stateful modules reload the page on hot update (decision 65). Harness `hmr-drop.mjs` now passes after a hot update.
+- Lesson: editing store modules while the user tests in `tauri dev` produces dev-only ghosts; tell the user to reload (⌘R) after such edits, or test in a release build.
+- Logo drawn as SVG, rendered to PNG in the harness's Chromium, icons generated with `tauri icon`.
