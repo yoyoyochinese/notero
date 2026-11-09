@@ -40,3 +40,12 @@
 - Lesson: a controlled CodeMirror wrapper must tolerate stale echoes of its own text — React Flow returns node data several renders later. Worth remembering for any controlled editor inside React Flow.
 - Lesson: the "flush before close" requirement (decision 37) was only implemented for in-app navigation; app quit is a separate path (Rust `ExitRequested`), easy to miss.
 - CSP hardening recorded as Open: it needs a hands-on check of pdf.js/KaTeX/IPC under the policy.
+
+## Feedback round 1: Q33/Q34, sidebar, auto note, UI pass (2026-11-09)
+
+- The coordinator could not see the Tauri window (no screen access), so it built a **Chromium harness** in the scratchpad: Playwright drives the real frontend on the Vite dev server with `window.__TAURI_INTERNALS__` replaced by an in-memory vault (fs/dialog/http/event mocks) seeded with a generated PDF, notes and a canvas. It gives screenshots (light/dark) and behaviour checks (sidebar stays, auto note, free note stays, drag highlight → note). Helped a lot: the first screenshots showed problems no test could (invisible 16 px sidebar strip, monospace notes, no page separation, pdf.js's global `.sidebar` rule rounding our sidebar).
+- Correction: our `.sidebar` class collided with pdf.js's global `pdf_viewer.css` (`.sidebar { border-radius: 8px; padding-top: 6px … }`) → renamed `.app-sidebar`. Checked the other app class names against pdf.js, React Flow and KaTeX CSS.
+- Correction: `proOptions.hideAttribution` triggered React Flow's request to keep the attribution without a Pro subscription → reverted.
+- Fixed the `ResizeObserver loop` error seen in the dev log (refit deferred a frame).
+- CSP verified by serving the production build with the CSP header injected by Playwright: inline scripts blocked, everything else renders.
+- No separate fresh-context review for this batch: small, and covered by `showPaper.test.ts` plus the harness checks. Tests: 40.

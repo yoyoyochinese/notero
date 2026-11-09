@@ -1,9 +1,24 @@
 .pdf-header {
+  flex: none;
   display: flex;
-  gap: 4px;
+  gap: 2px;
   align-items: center;
-  padding: 6px;
+  height: var(--header-h);
+  padding: 0 6px 0 12px;
   border-bottom: 1px solid var(--border);
+}
+
+.pdf-header button {
+  border-color: transparent;
+  background: none;
+  color: var(--fg-muted);
+  padding: 3px 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pdf-header button:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--fg);
 }
 
 .pdf-title {
@@ -22,7 +37,8 @@
 }
 
 .pdf-header button[aria-pressed="true"] {
-  border-color: var(--accent);
+  background: var(--bg-selected);
+  color: var(--fg);
 }
 
 .pdf-body {
@@ -42,7 +58,7 @@
   position: absolute;
   inset: 0;
   overflow: auto;
-  background: var(--bg-alt);
+  background: var(--pdf-bg);
 }
 
 /* App.css sets border-box globally; pdf.js lays out pages assuming the default. */
@@ -51,11 +67,14 @@
 }
 
 .pdf-scroll .pdfViewer {
-  padding-top: 10px;
+  padding: 12px 0;
 }
 
-.pdf-scroll .page {
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+/* Pages as sheets on a grey desk, with a visible gap between them. */
+.pdf-scroll .pdfViewer .page {
+  border: none;
+  margin: 0 auto 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .pdf-error {
@@ -87,7 +106,8 @@
 }
 
 .hl-list {
-  width: 240px;
+  width: 220px;
+  background: var(--bg);
   flex: none;
   margin: 0;
   padding: 0;
@@ -105,7 +125,7 @@
 }
 
 .hl-list li:hover {
-  background: var(--bg-alt);
+  background: var(--bg-hover);
 }
 
 .hl-swatch {

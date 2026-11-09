@@ -75,8 +75,16 @@ Every worker reads this before starting. Numbered; never renumber. Phase: G = gr
 46. **Deleting a paper closes its open note.** Canvas file cards only open vault-relative paths (no `..`, no absolute paths).
 47. **fs scope also denies** `~/Library/LaunchAgents` and shell startup files (`.zshrc`, `.zprofile`, `.bashrc`, `.bash_profile`, `.profile`).
 
+## User feedback after the first hands-on use (2026-11-09)
+
+48. **The sidebar no longer collapses when a paper opens** (user: "pdfを開くと、一覧を見れなくなります"; supersedes that part of decision 9). It is hidden/shown with the button in its header (a 40 px rail with the same button when hidden) or ⌘\.
+49. **Opening a paper from the library** (or importing a single PDF) shows its most recently edited note; a paper without notes gets `papers/<ck>/notes/<citekey>.md` starting with `# <title>` (user: "noteがない場合は、一つ自動的に作成"). A free note that is open stays open (decision 9); following a `notero://` link never switches notes.
+50. **Q33 — a single imported PDF opens** (new or already in the library); importing several opens nothing (supersedes decision 6 for batches).
+51. **Q34 — CSP on.** Production: `default-src 'self' ipc: http://ipc.localhost; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; form-action 'none'`, with Tauri's style nonce injection disabled (CodeMirror/KaTeX set inline styles; a nonce would void `'unsafe-inline'`). `devCsp` adds the Vite preamble and HMR socket. Verified against the production build in Chromium: inline scripts blocked; PDF, text layer, KaTeX fonts, CodeMirror and React Flow work.
+52. **UI conventions**: every pane header is 40 px with the same tab/button style; list rows (Library, Notes, Canvases) share hover/selected styles; notes and cards use the UI's proportional font (code stays monospace), the Note tab has a 760 px measure; `-`/`*`/`+` list markers render as bullets; PDF pages sit on a grey "desk" with gaps; empty panes offer the next action. The React Flow attribution stays (its authors ask to keep it without a Pro subscription).
+
 ## Open
 
-1. **CSP** (`tauri.conf.json` has `"csp": null`). Recommended: add a strict CSP (`default-src 'self'`, plus what pdf.js workers, KaTeX fonts and Tauri IPC need). Needs a check in the running app, so not applied blind. — coordinator recommendation, awaiting the user.
-2. **Auto-open a newly imported paper?** Recommended: yes when a single PDF is added, no for multiple. — asked 2026-11-09, awaiting the user.
-3. **Hands-on check of the running app** (drag & drop of highlights into notes/canvas vs Tauri's file-drop handler, selection rects, live CrossRef/arXiv, quit flush). — needs the user.
+1. **Hands-on check of the real app** (highlight drag into note/canvas under Tauri's file-drop handler, selection rects on a real paper, live CrossRef/arXiv, quit flush). The same flows pass in a Chromium harness with mocked Tauri APIs; WKWebView is unverified. — needs the user.
+2. **Q35 — canvas auto-creation** (asked 2026-11-09).
+3. **Q36 — where the highlight list lives** (asked 2026-11-09).

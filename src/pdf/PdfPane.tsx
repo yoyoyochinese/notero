@@ -44,7 +44,12 @@ const at = (x: number, y: number) => ({ x: Math.min(x, innerWidth - 320), y: Mat
 export function PdfPane() {
   const citekey = useUI((s) => s.citekey);
   const paper = usePapers((s) => (citekey ? s.papers[citekey] : undefined));
-  if (!citekey) return <p className="empty">Open a paper from the library.</p>;
+  if (!citekey)
+    return (
+      <div className="empty-state">
+        <p>Open a paper from the library, or drop a PDF anywhere in the window.</p>
+      </div>
+    );
   if (!paper) return <p className="empty">This paper is no longer in the library.</p>;
   return <PdfView key={citekey} paper={paper} />;
 }
@@ -88,8 +93,13 @@ function PdfView({ paper }: { paper: Paper }) {
       setLayers((l) => ({ ...l, [e.pageNumber]: layer }));
     });
     // PDFViewer doesn't refit on resize (e.g. dragging the splitter).
+    // Deferred a frame: refitting inside the callback resizes the observed box again ("ResizeObserver loop").
+    let frame = 0;
     const refit = new ResizeObserver(() => {
-      if (viewer.currentScaleValue === "page-width") viewer.currentScaleValue = "page-width";
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (viewer.currentScaleValue === "page-width") viewer.currentScaleValue = "page-width";
+      });
     });
     refit.observe(container);
 
@@ -106,6 +116,7 @@ function PdfView({ paper }: { paper: Paper }) {
     return () => {
       ac.abort();
       refit.disconnect();
+      cancelAnimationFrame(frame);
       viewer.setDocument(null);
       task?.destroy();
     };

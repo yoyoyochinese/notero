@@ -23,20 +23,27 @@
   color: var(--fg-muted);
 }
 .md-editor .cm-md-math-block { text-align: center; }
+.md-editor .cm-md-bullet { color: var(--fg-muted); padding-right: 0.15em; }
 
 /* Note tab */
 .note-editor { height: 100%; display: flex; flex-direction: column; }
 .note-editor .md-editor { flex: 1; min-height: 0; }
 .note-editor .cm-editor { height: 100%; }
-.note-editor .cm-content { min-height: 100%; padding: 16px 20px; }
+.note-editor .cm-content {
+  min-height: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 28px 32px 40vh;
+  font-size: 15px;
+}
 
-/* Note list */
-.note-list-head { padding: 6px; }
-.note-list ul { list-style: none; margin: 0; padding: 0; }
-.note-list li { display: flex; align-items: center; gap: 4px; padding: 0 6px; }
-.note-list li:hover,
-.note-list li[aria-current="true"] { background: var(--bg); }
-.note-list li[aria-current="true"] .note-list-name { color: var(--accent); }
+/* Note list (sidebar Notes tab and inside library rows) */
+.note-list-head { padding: 8px; }
+.note-list ul { list-style: none; margin: 0; padding: 0 4px; }
+.note-list li { display: flex; align-items: center; gap: 4px; padding: 0 6px; border-radius: var(--radius); }
+.note-list li:hover { background: var(--bg-hover); }
+.note-list li[aria-current="true"] { background: var(--bg-selected); }
+.note-list li[aria-current="true"] .note-list-name { font-weight: 500; }
 .note-list-name {
   flex: 1;
   min-width: 0;

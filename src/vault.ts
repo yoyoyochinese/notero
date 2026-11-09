@@ -76,10 +76,10 @@ export async function uniquePath(dir: string, base: string, ext: string) {
   }
 }
 
-/** Creates "<dir>/Untitled.<ext>" (or the next free name) and returns its path. */
-export async function createFile(dir: string, ext: string, content = "") {
+/** Creates "<dir>/<base>.<ext>" (or the next free name) and returns its path. */
+export async function createFile(dir: string, ext: string, content = "", base = "Untitled") {
   await mkdir(abs(dir), { recursive: true });
-  const rel = await uniquePath(dir, "Untitled", ext);
+  const rel = await uniquePath(dir, base, ext);
   await writeText(rel, content, null);
   return rel;
 }

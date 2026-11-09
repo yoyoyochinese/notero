@@ -86,6 +86,19 @@ class MathWidget extends WidgetType {
   }
 }
 
+class BulletWidget extends WidgetType {
+  eq() {
+    return true;
+  }
+  toDOM() {
+    const el = document.createElement("span");
+    el.className = "cm-md-bullet";
+    el.textContent = "•";
+    return el;
+  }
+}
+const bullet = Decoration.replace({ widget: new BulletWidget() });
+
 const hidden = Decoration.replace({});
 const lineClass = (cls: string) => Decoration.line({ class: cls });
 const markClass = (cls: string, attributes?: Record<string, string>) => Decoration.mark({ class: cls, attributes });
@@ -120,6 +133,10 @@ export function decorate(state: EditorState, focused: boolean): DecorationSet {
           }
           break;
         }
+        case "ListMark":
+          // "-", "*", "+" become a bullet; ordered markers ("1.") stay as typed.
+          if (/^[-*+]$/.test(doc.sliceString(n.from, n.to)) && !raw(n.from, n.to)) out.push(bullet.range(n.from, n.to));
+          break;
         case "Emphasis":
           mark("cm-md-em", n.from, n.to);
           break;
@@ -215,6 +232,7 @@ const linkClicks = EditorView.domEventHandlers({
 const theme = EditorView.theme({
   "&": { color: "var(--fg)" },
   "&.cm-focused": { outline: "none" },
+  ".cm-scroller": { fontFamily: "inherit", lineHeight: "1.65" },
   ".cm-content": { caretColor: "var(--fg)", fontFamily: "inherit" },
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--fg)" },
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground": {

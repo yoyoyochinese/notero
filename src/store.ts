@@ -41,7 +41,7 @@ export const useUI = create<State>((set) => ({
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
   setSidebarTab: (sidebarTab) => set({ sidebarTab, sidebarOpen: true }),
   setRightTab: (rightTab) => set({ rightTab }),
-  openPaper: (citekey) => set({ citekey, sidebarOpen: false }),
+  openPaper: (citekey) => set({ citekey }),
   openNote: (notePath) => {
     const ck = /^papers\/([^/]+)\/notes\//.exec(notePath)?.[1];
     set({ notePath, rightTab: "note", ...(ck && { citekey: ck }) });

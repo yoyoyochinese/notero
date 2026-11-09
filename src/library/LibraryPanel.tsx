@@ -7,6 +7,7 @@ import type { Author, Paper } from "../types";
 import { trash } from "../vault";
 import { NoteList } from "../notes/NoteList";
 import { importPdfs, useImports } from "./importPdf";
+import { showPaper } from "./showPaper";
 import "./library.css";
 
 type SortKey = "added" | "title" | "author" | "year";
@@ -81,7 +82,7 @@ export function LibraryPanel() {
         {list.map((p) => (
           <li key={p.citekey} className={p.citekey === openCitekey ? "current" : undefined}>
             <div className="lib-row">
-              <button className="lib-main" onClick={() => useUI.getState().openPaper(p.citekey)}>
+              <button className="lib-main" onClick={() => showPaper(p.citekey).catch(console.error)}>
                 <span className="lib-title">{p.title}</span>
                 <span className="lib-meta" title={p.authors.map(fullName).join(", ")}>
                   {[authorLabel(p.authors), p.year, p.venue].filter(Boolean).join(" · ")}

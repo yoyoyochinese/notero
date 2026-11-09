@@ -36,7 +36,10 @@ export default function App() {
     return (
       <div className="welcome">
         <h1>Notero</h1>
-        <button onClick={async () => setVault(await chooseVault())}>Choose vault folder…</button>
+        <p>Pick a folder for your papers, notes and canvases. Obsidian can open the same folder.</p>
+        <button className="primary" onClick={async () => setVault(await chooseVault())}>
+          Choose vault folder…
+        </button>
       </div>
     );
   return <Workspace />;
@@ -54,15 +57,38 @@ function Workspace() {
     return () => unlisten.forEach((u) => u.then((f) => f()));
   }, []);
   const { sidebarOpen, sidebarTab, setSidebarOpen, setSidebarTab } = useUI();
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey && e.key === "\\") setSidebarOpen(!useUI.getState().sidebarOpen);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [setSidebarOpen]);
+  const toggle = (
+    <button
+      className="icon-btn"
+      title={`${sidebarOpen ? "Hide" : "Show"} sidebar (⌘\\)`}
+      aria-label={`${sidebarOpen ? "Hide" : "Show"} sidebar`}
+      onClick={() => setSidebarOpen(!sidebarOpen)}
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
+        <rect x="1.5" y="2.5" width="13" height="11" rx="2" />
+        <path d="M6 2.5v11" />
+      </svg>
+    </button>
+  );
   return (
     <div className="app">
-      <aside className="sidebar" hidden={!sidebarOpen}>
+      {!sidebarOpen && <div className="rail">{toggle}</div>}
+      <aside className="app-sidebar" hidden={!sidebarOpen}>
         <nav className="tabs">
           {TABS.map(([id, label]) => (
             <button key={id} aria-pressed={sidebarTab === id} onClick={() => setSidebarTab(id)}>
               {label}
             </button>
           ))}
+          <span className="tabs-spacer" />
+          {toggle}
         </nav>
         <div className="sidebar-body">
           {sidebarTab === "library" && <LibraryPanel />}
@@ -70,13 +96,6 @@ function Workspace() {
           {sidebarTab === "canvases" && <CanvasesPanel />}
         </div>
       </aside>
-      <button
-        className="sidebar-toggle"
-        title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-      >
-        {sidebarOpen ? "‹" : "›"}
-      </button>
       <Group orientation="horizontal" className="main">
         <Panel defaultSize="50" minSize="20">
           <PdfPane />

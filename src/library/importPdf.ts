@@ -9,6 +9,7 @@ import { pdfjs } from "../pdfjs";
 import { useUI } from "../store";
 import type { PaperFile } from "../types";
 import { abs, listDir } from "../vault";
+import { showPaper } from "./showPaper";
 import { findIds, makeCitekey, type Meta, parseArxiv, parseCrossref, splitName } from "./metadata";
 
 /** Import progress, global so the drop hook can live outside the Library panel. */
@@ -22,8 +23,9 @@ async function importAll(paths: string[]) {
   for (const path of paths) {
     useImports.setState((s) => ({ pending: s.pending + 1 }));
     try {
-      const { citekey, duplicate } = await importPdf(path);
-      if (duplicate) useUI.getState().openPaper(citekey);
+      const { citekey } = await importPdf(path);
+      // A single PDF (new or already in the library) opens; a batch just lands in the list.
+      if (paths.length === 1) await showPaper(citekey);
     } catch (err) {
       console.error("import failed", path, err);
       useImports.setState((s) => ({ errors: [...s.errors, `${basename(path)}: ${err}`] }));
