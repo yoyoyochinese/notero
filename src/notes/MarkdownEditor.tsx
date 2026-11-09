@@ -1,7 +1,7 @@
 // Controlled CodeMirror 6 Markdown editor with Obsidian-style live preview: markup is hidden
 // and math rendered everywhere except on the lines holding the cursor/selection (when focused).
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { commonmarkLanguage, markdownKeymap } from "@codemirror/lang-markdown";
+import { commonmarkLanguage, markdownKeymap, pasteURLAsLink } from "@codemirror/lang-markdown";
 import type { MarkdownParser } from "@lezer/markdown";
 import { Language, syntaxTree } from "@codemirror/language";
 import { Annotation, Compartment, EditorState, Prec, type Range, StateEffect, StateField } from "@codemirror/state";
@@ -66,7 +66,11 @@ const parser = (commonmarkLanguage.parser as MarkdownParser).configure({
   ],
 });
 // Same language-data facet as lang-markdown's languages: its list keymap checks markdownLanguage.isActiveAt().
-export const language = [new Language(commonmarkLanguage.data, parser, [], "markdown"), Prec.high(keymap.of(markdownKeymap))];
+export const language = [
+  new Language(commonmarkLanguage.data, parser, [], "markdown"),
+  Prec.high(keymap.of(markdownKeymap)),
+  pasteURLAsLink, // select text, paste a URL → [text](url), as markdown() did
+];
 
 // KaTeX (~270 KB plus fonts) loads with the first formula on screen, not at startup.
 let katexLoad: Promise<(typeof import("katex"))["default"]> | undefined;

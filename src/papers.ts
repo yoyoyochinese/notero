@@ -23,21 +23,21 @@ export const usePapers = create<State>((set, get) => ({
   papers: {},
 
   load: async () => {
-    const papers: Record<string, Paper> = {};
-    // All paper.json reads in flight at once: startup is bound by IPC round trips, not by work.
-    await Promise.all(
-      (await listDir("papers"))
-        .filter((e) => e.isDirectory)
-        .map(async (e) => {
-          try {
-            const { data, mtime } = await readJson<PaperFile>(jsonPath(e.name));
-            papers[e.name] = { ...data, citekey: e.name };
-            mtimes[e.name] = mtime;
-          } catch (err) {
-            console.warn(`skipping papers/${e.name}:`, err);
-          }
-        }),
+    // All paper.json reads in flight at once (startup is bound by IPC round trips), but the
+    // results are added in listing order so ties in the library sort don't reshuffle per launch.
+    const dirs = (await listDir("papers")).filter((e) => e.isDirectory).map((e) => e.name);
+    const read = await Promise.all(
+      dirs.map((ck) =>
+        readJson<PaperFile>(jsonPath(ck)).catch((err) => void console.warn(`skipping papers/${ck}:`, err)),
+      ),
     );
+    const papers: Record<string, Paper> = {};
+    dirs.forEach((ck, i) => {
+      const r = read[i];
+      if (!r) return;
+      papers[ck] = { ...r.data, citekey: ck };
+      mtimes[ck] = r.mtime;
+    });
     set({ papers });
   },
 

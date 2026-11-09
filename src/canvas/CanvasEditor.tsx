@@ -98,8 +98,10 @@ function CanvasView({ text, onChange }: { text: string; onChange: (text: string)
   // fitView would first render every card at zoom 1 (one CodeMirror each) and only then zoom out.
   const [viewport, setViewport] = useState<Viewport | null>(null);
   useLayoutEffect(() => {
-    const { width, height } = box.current!.getBoundingClientRect();
+    if (!box.current) return; // invalid file: only the error message is rendered
+    const { width, height } = box.current.getBoundingClientRect();
     const ns = init?.nodes ?? [];
+    // (React Flow's dev-only warning about sub flows doesn't apply: JSON Canvas groups aren't parent nodes.)
     setViewport(ns.length ? getViewportForBounds(getNodesBounds(ns), width, height, 0.1, 1, 0.1) : { x: 0, y: 0, zoom: 1 });
   }, [init]);
   const { screenToFlowPosition } = useReactFlow();
@@ -114,6 +116,17 @@ function CanvasView({ text, onChange }: { text: string; onChange: (text: string)
       onChange(s);
     }
   }, [init, doc, nodes, edges, onChange]);
+  // A drag cut short by closing the canvas (paper switch, quit) never gets its drop write; save it here.
+  const latest = useRef({ doc, nodes, edges });
+  latest.current = { doc, nodes, edges };
+  useEffect(
+    () => () => {
+      if (!init) return;
+      const s = serializeCanvas(latest.current.doc, latest.current.nodes, latest.current.edges);
+      if (s !== saved.current) onChange(s);
+    },
+    [init, onChange],
+  );
 
   if (!init) return <p className="empty">This file is not a valid JSON Canvas.</p>;
 
@@ -215,7 +228,6 @@ function CanvasView({ text, onChange }: { text: string; onChange: (text: string)
           zoomOnDoubleClick={false}
           minZoom={0.1}
           colorMode="dark"
-          onlyRenderVisibleElements
           onDragOver={(e) => {
             if (e.dataTransfer.types.includes("text/plain")) {
               e.preventDefault();
