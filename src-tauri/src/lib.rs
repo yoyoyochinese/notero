@@ -1,7 +1,19 @@
+use std::path::Path;
+
 // Moves a file or folder to the OS trash (plugin-fs only supports permanent delete).
+// The app only ever trashes vault items (papers/<ck>, notes/x.md, canvases/x.canvas,
+// papers/<ck>/notes/x.md), so anything else is refused: a script injected into the
+// webview can't trash arbitrary paths.
 #[tauri::command]
 fn move_to_trash(path: String) -> Result<(), String> {
-    trash::delete(&path).map_err(|e| e.to_string())
+    let p = Path::new(&path).canonicalize().map_err(|e| e.to_string())?;
+    let parent = p.parent().and_then(|d| d.file_name()).and_then(|n| n.to_str());
+    let home = std::env::var("HOME").map_err(|e| e.to_string())?;
+    let in_scope = p.starts_with(&home) || p.starts_with("/Volumes");
+    if !in_scope || !matches!(parent, Some("papers" | "notes" | "canvases")) {
+        return Err(format!("forbidden path: {path}"));
+    }
+    trash::delete(&p).map_err(|e| e.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

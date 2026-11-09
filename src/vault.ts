@@ -16,7 +16,7 @@ export async function openVault(dir: string) {
 }
 
 export async function chooseVault(): Promise<string | null> {
-  const dir = await open({ directory: true, title: "Choose a vault folder" });
+  const dir = await open({ directory: true, recursive: true, title: "Choose a vault folder" });
   if (typeof dir !== "string") return null;
   await openVault(dir);
   return dir;
@@ -35,8 +35,9 @@ export async function mtimeOf(rel: string): Promise<number | null> {
 }
 
 export async function readText(rel: string) {
-  const text = await readTextFile(abs(rel));
-  return { text, mtime: await mtimeOf(rel) };
+  // mtime first: a write landing between the two calls then causes a false conflict, not a silent overwrite.
+  const mtime = await mtimeOf(rel);
+  return { text: await readTextFile(abs(rel)), mtime };
 }
 
 /**
@@ -47,7 +48,7 @@ export async function readText(rel: string) {
 export async function writeText(rel: string, text: string, expectedMtime?: number | null) {
   if (expectedMtime !== undefined && (await mtimeOf(rel)) !== expectedMtime) throw new ConflictError(rel);
   const i = rel.lastIndexOf("/");
-  const tmp = abs(`${rel.slice(0, i + 1)}.${rel.slice(i + 1)}.tmp`);
+  const tmp = abs(`${rel.slice(0, i + 1)}.${rel.slice(i + 1)}.${crypto.randomUUID().slice(0, 8)}.tmp`);
   await writeTextFile(tmp, text);
   await rename(tmp, abs(rel));
   return mtimeOf(rel);
@@ -83,11 +84,20 @@ export async function createFile(dir: string, ext: string, content = "") {
   return rel;
 }
 
+/** Open documents register a flush here so their pending edits land before a file is moved or trashed. */
+export const flushers = new Set<() => Promise<unknown>>();
+const flushAll = () => Promise.all([...flushers].map((f) => f()));
+
 /** Renames/moves a file; refuses to replace an existing one. Returns false if the target exists. */
 export async function moveFile(from: string, to: string) {
-  if (await exists(abs(to))) return false;
+  // APFS is case-insensitive: "a.md" -> "A.md" is a rename, not a collision.
+  if (from.toLowerCase() !== to.toLowerCase() && (await exists(abs(to)))) return false;
+  await flushAll();
   await rename(abs(from), abs(to));
   return true;
 }
 
-export const trash = (rel: string) => invoke<void>("move_to_trash", { path: abs(rel) });
+export async function trash(rel: string) {
+  await flushAll();
+  await invoke<void>("move_to_trash", { path: abs(rel) });
+}

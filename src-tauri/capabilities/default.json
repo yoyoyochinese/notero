@@ -2,7 +2,9 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "opener:default",
@@ -11,13 +13,38 @@
     "fs:write-all",
     {
       "identifier": "fs:scope",
-      "allow": [{ "path": "$HOME/**" }, { "path": "/Volumes/**" }]
+      "allow": [
+        {
+          "path": "$HOME/**"
+        },
+        {
+          "path": "/Volumes/**"
+        }
+      ],
+      "deny": [
+        {
+          "path": "$HOME/.ssh/**"
+        },
+        {
+          "path": "$HOME/.gnupg/**"
+        },
+        {
+          "path": "$HOME/.aws/**"
+        },
+        {
+          "path": "$HOME/Library/Keychains/**"
+        }
+      ]
     },
     {
       "identifier": "http:default",
       "allow": [
-        { "url": "https://api.crossref.org/*" },
-        { "url": "https://export.arxiv.org/*" }
+        {
+          "url": "https://api.crossref.org/*"
+        },
+        {
+          "url": "https://export.arxiv.org/*"
+        }
       ]
     }
   ]

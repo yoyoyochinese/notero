@@ -14,6 +14,8 @@ type State = {
 };
 
 const mtimes: Record<string, number | null> = {};
+// Writes per paper run one after another, so each checks against the mtime of the previous one.
+const chains: Record<string, Promise<unknown>> = {};
 const jsonPath = (ck: string) => `papers/${ck}/paper.json`;
 const strip = ({ citekey: _, ...file }: Paper): PaperFile => file;
 
@@ -44,8 +46,12 @@ export const usePapers = create<State>((set, get) => ({
     const old = get().papers[citekey];
     const next = fn(strip(old));
     set((s) => ({ papers: { ...s.papers, [citekey]: { ...next, citekey } } }));
-    try {
+    const run = (chains[citekey] ?? Promise.resolve()).then(async () => {
       mtimes[citekey] = await writeJson(jsonPath(citekey), next, mtimes[citekey]);
+    });
+    chains[citekey] = run.catch(() => {});
+    try {
+      await run;
     } catch (err) {
       set((s) => ({ papers: { ...s.papers, [citekey]: old } }));
       if (err instanceof ConflictError)

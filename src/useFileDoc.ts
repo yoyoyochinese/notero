@@ -1,36 +1,51 @@
 // Loads a vault text file and autosaves edits 1 s after typing stops, refusing to
 // overwrite a file another app changed meanwhile (status "conflict").
+// One instance = one file: switch files by remounting (key={path}).
+import { message } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ConflictError, readText, writeText } from "./vault";
+import { ConflictError, flushers, readText, uniquePath, writeText } from "./vault";
 
 export type DocStatus = "loading" | "saved" | "dirty" | "conflict" | "error";
 const DELAY = 1000;
 
-export function useFileDoc(path: string | null) {
+export function useFileDoc(path: string) {
   const [text, setTextState] = useState<string | null>(null);
   const [status, setStatus] = useState<DocStatus>("loading");
   const mtime = useRef<number | null>(null);
-  const pending = useRef<string | null>(null);
+  const pending = useRef<string | null>(null); // latest text not yet on disk
+  const queue = useRef<Promise<void>>(Promise.resolve());
   const timer = useRef<number>(undefined);
+  const alive = useRef(true);
 
-  const save = useCallback(async (p: string, t: string, check = true) => {
+  // Writes are queued so each one checks against the mtime the previous one produced.
+  const write = useCallback(
+    (force = false) => {
+      clearTimeout(timer.current);
+      queue.current = queue.current.then(async () => {
+        const t = pending.current;
+        if (t === null) return;
+        try {
+          mtime.current = await writeText(path, t, force ? undefined : mtime.current);
+          if (pending.current === t) pending.current = null;
+          if (alive.current && pending.current === null) setStatus("saved");
+        } catch (err) {
+          if (!(err instanceof ConflictError)) console.error(err);
+          if (alive.current) setStatus(err instanceof ConflictError ? "conflict" : "error");
+          else await rescue(path, t); // editor already closed: nobody can resolve it, keep a copy
+        }
+      });
+      return queue.current;
+    },
+    [path],
+  );
+
+  const load = useCallback(async () => {
+    clearTimeout(timer.current);
     pending.current = null;
-    try {
-      mtime.current = await writeText(p, t, check ? mtime.current : undefined);
-      setStatus((s) => (s === "dirty" || !check ? "saved" : s));
-    } catch (err) {
-      if (err instanceof ConflictError) setStatus("conflict");
-      else {
-        console.error(err);
-        setStatus("error");
-      }
-    }
-  }, []);
-
-  const load = useCallback(async (p: string) => {
     setStatus("loading");
+    await queue.current;
     try {
-      const r = await readText(p);
+      const r = await readText(path);
       mtime.current = r.mtime;
       setTextState(r.text);
       setStatus("saved");
@@ -38,30 +53,29 @@ export function useFileDoc(path: string | null) {
       console.error(err);
       setStatus("error");
     }
-  }, []);
+  }, [path]);
 
   useEffect(() => {
-    if (!path) return;
-    load(path);
+    alive.current = true;
+    load();
+    const flush = () => write();
+    flushers.add(flush);
     return () => {
-      // Flush unsaved edits of the file we are leaving.
-      clearTimeout(timer.current);
-      if (pending.current !== null) save(path, pending.current);
+      alive.current = false;
+      flushers.delete(flush);
+      write();
     };
-  }, [path, load, save]);
+  }, [load, write]);
 
   const setText = useCallback(
     (t: string) => {
-      if (!path) return;
       setTextState(t);
       setStatus((s) => (s === "conflict" ? s : "dirty"));
       pending.current = t;
       clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => {
-        if (pending.current !== null) save(path, pending.current);
-      }, DELAY);
+      timer.current = window.setTimeout(() => write(), DELAY);
     },
-    [path, save],
+    [write],
   );
 
   return {
@@ -69,8 +83,21 @@ export function useFileDoc(path: string | null) {
     setText,
     status,
     /** Conflict resolution: drop local edits and re-read the file. */
-    reload: () => path && load(path),
+    reload: load,
     /** Conflict resolution: write our version over the other app's. */
-    overwrite: () => path && text !== null && save(path, text, false),
+    overwrite: () => write(true),
   };
+}
+
+/** Saves edits that could not be written next to the file as "<name> (conflict).<ext>". */
+async function rescue(path: string, text: string) {
+  const m = /^(.*)\/([^/]+)\.([^./]+)$/.exec(path);
+  if (!m) return console.error("unsaved edits lost for", path);
+  try {
+    const copy = await uniquePath(m[1], `${m[2]} (conflict)`, m[3]);
+    await writeText(copy, text, null);
+    message(`${path} was changed elsewhere. Your unsaved edits were saved as ${copy}.`, { kind: "warning" });
+  } catch (err) {
+    console.error("unsaved edits lost for", path, err);
+  }
 }
