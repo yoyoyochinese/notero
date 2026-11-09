@@ -49,3 +49,12 @@
 - Fixed the `ResizeObserver loop` error seen in the dev log (refit deferred a frame).
 - CSP verified by serving the production build with the CSP header injected by Playwright: inline scripts blocked, everything else renders.
 - No separate fresh-context review for this batch: small, and covered by `showPaper.test.ts` plus the harness checks. Tests: 40.
+
+## Feedback round 2: Ayu Mirage, resizable sidebar, canvas colours, Q35/Q36 (2026-11-09)
+
+- Ayu colours taken from the official `ayu` npm package (downloaded as data with `npm pack` into the scratchpad, not installed) rather than from memory.
+- Harness extended to 14 behaviour checks (sidebar drag-resize, Highlights tab + flash, per-paper canvas creation, background and card colour saved to the file). All pass; no console errors.
+- Correction: full-strength preset backgrounds made the canvas bright cyan with unreadable cards (seen in the harness screenshot) → presets are tints; custom picks stay exact.
+- Correction: with the sidebar collapsed, its hidden toggle button was still in the accessibility tree (two "Show sidebar" buttons) → the collapsed panel's content gets `hidden`, still mounted so it keeps its state.
+- Interpretation recorded: "背景色" implemented as the canvas background plus card/arrow colours; reported to the user.
+- Tests: 41.

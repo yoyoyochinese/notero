@@ -22,7 +22,7 @@ const { showPaper } = await import("./showPaper");
 
 beforeEach(() => {
   files.clear();
-  useUI.setState({ citekey: null, notePath: null });
+  useUI.setState({ citekey: null, notePath: null, canvasPath: null });
   usePapers.setState({ papers: { p1: { citekey: "p1", title: "Paper One", authors: [], sha256: "", addedAt: "", highlights: [] } } });
 });
 
@@ -47,4 +47,20 @@ test("replaces another paper's note, keeps a free note", async () => {
   useUI.setState({ notePath: "notes/Ideas.md" });
   await showPaper("p1");
   expect(useUI.getState()).toMatchObject({ citekey: "p1", notePath: "notes/Ideas.md" });
+});
+
+test("shows the paper's canvas if it has one; a canvas from canvases/ stays", async () => {
+  files.set("papers/p1/p1.canvas", 1);
+  useUI.setState({ canvasPath: "papers/p2/p2.canvas" });
+  await showPaper("p1");
+  expect(useUI.getState().canvasPath).toBe("papers/p1/p1.canvas");
+
+  useUI.setState({ canvasPath: "canvases/Map.canvas" });
+  await showPaper("p1");
+  expect(useUI.getState().canvasPath).toBe("canvases/Map.canvas");
+
+  files.delete("papers/p1/p1.canvas");
+  useUI.setState({ canvasPath: "papers/p2/p2.canvas" });
+  await showPaper("p1");
+  expect(useUI.getState().canvasPath).toBeNull(); // created when the Canvas tab is shown
 });

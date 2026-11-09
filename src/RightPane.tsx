@@ -1,12 +1,18 @@
+import { useEffect } from "react";
 import { CanvasEditor } from "./canvas/CanvasEditor";
+import { openPaperCanvas } from "./library/showPaper";
 import { NoteEditor } from "./notes/NoteEditor";
 import { usePapers } from "./papers";
 import { useUI } from "./store";
 import { createFile } from "./vault";
 
 export function RightPane() {
-  const { rightTab, setRightTab, notePath, canvasPath } = useUI();
+  const { rightTab, setRightTab, notePath, canvasPath, citekey } = useUI();
   const path = rightTab === "note" ? notePath : canvasPath;
+  // Canvas tab with a paper open but no canvas: the paper's own canvas, created on first use.
+  useEffect(() => {
+    if (rightTab === "canvas" && !canvasPath && citekey) openPaperCanvas(citekey).catch(console.error);
+  }, [rightTab, canvasPath, citekey]);
   return (
     <div className="pane">
       <nav className="tabs">

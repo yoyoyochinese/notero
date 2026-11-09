@@ -8,11 +8,11 @@ import { pdfjs } from "../pdfjs";
 import { EventBus, PDFLinkService, PDFViewer } from "pdfjs-dist/web/pdf_viewer.mjs";
 import "pdfjs-dist/web/pdf_viewer.css";
 import { usePapers } from "../papers";
-import { formatQuote, HIGHLIGHT_MIME } from "../quote";
+import { formatQuote } from "../quote";
 import { useUI } from "../store";
 import type { Highlight, HighlightColor, Paper } from "../types";
 import { abs, createFile, flushers } from "../vault";
-import { byPosition, hitTest, newHighlightId, toPageRects } from "./geometry";
+import { hitTest, newHighlightId, toPageRects } from "./geometry";
 import "./pdf.css";
 
 const COLORS: HighlightColor[] = ["yellow", "red", "green", "blue", "purple"];
@@ -31,7 +31,7 @@ async function insertIntoNote(ck: string, id: string) {
   const paper = usePapers.getState().papers[ck];
   const h = paper?.highlights.find((x) => x.id === id);
   if (!h) return;
-  if (!useUI.getState().notePath) useUI.getState().openNote(await createFile(`papers/${ck}/notes`, "md"));
+  if (!useUI.getState().notePath) useUI.getState().openNote(await createFile(`papers/${ck}/notes`, "md", `# ${paper.title}\n\n`, ck));
   useUI.getState().requestInsert(formatQuote(paper, h));
 }
 
@@ -65,7 +65,7 @@ function PdfView({ paper }: { paper: Paper }) {
   const [layers, setLayers] = useState<Record<number, HTMLElement>>({});
   const [popup, setPopup] = useState<Popup | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
-  const [listOpen, setListOpen] = useState(false);
+  const hlShown = useUI((s) => s.sidebarOpen && s.sidebarTab === "highlights");
   const jump = useUI((s) => s.jump);
 
   useEffect(() => {
@@ -194,7 +194,6 @@ function PdfView({ paper }: { paper: Paper }) {
   }
 
   const viewer = viewerRef.current;
-  const sorted = [...paper.highlights].sort(byPosition);
   return (
     <div className="pane pdf-pane">
       <header className="pdf-header">
@@ -211,7 +210,11 @@ function PdfView({ paper }: { paper: Paper }) {
         <button title="Zoom in" disabled={!ready} onClick={() => viewer?.increaseScale()}>
           +
         </button>
-        <button aria-pressed={listOpen} onClick={() => setListOpen(!listOpen)}>
+        <button
+          aria-pressed={hlShown}
+          title="Show this paper's highlights in the sidebar"
+          onClick={() => useUI.getState().setSidebarTab(hlShown ? "library" : "highlights")}
+        >
           Highlights {paper.highlights.length}
         </button>
       </header>
@@ -222,31 +225,6 @@ function PdfView({ paper }: { paper: Paper }) {
           </div>
           {error && <p className="empty pdf-error">Cannot open the PDF: {error}</p>}
         </div>
-        {listOpen && (
-          <ul className="hl-list">
-            {sorted.length === 0 && <li className="empty">Select text in the PDF to highlight it.</li>}
-            {sorted.map((h) => (
-              <li
-                key={h.id}
-                draggable
-                title="Click to jump, drag into a note or canvas"
-                onClick={() => scrollTo(h.page, h)}
-                onDragStart={(e) => {
-                  e.dataTransfer.setData("text/plain", formatQuote(paper, h));
-                  e.dataTransfer.setData(HIGHLIGHT_MIME, JSON.stringify({ citekey: ck, id: h.id }));
-                  e.dataTransfer.effectAllowed = "copy";
-                }}
-              >
-                <span className="hl-swatch" style={{ background: `var(--hl-${h.color})` }} />
-                <span className="hl-item">
-                  <span className="hl-excerpt">{h.text}</span>
-                  {h.comment && <span className="hl-comment">{h.comment}</span>}
-                </span>
-                <span className="hl-pageno">p.{h.page}</span>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
 
       {Object.entries(layers).map(([n, el]) =>

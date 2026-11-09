@@ -1,7 +1,7 @@
 // UI navigation state shared by all panes.
 import { create } from "zustand";
 
-export type SidebarTab = "library" | "notes" | "canvases";
+export type SidebarTab = "library" | "notes" | "canvases" | "highlights";
 export type RightTab = "note" | "canvas";
 /** A request for the PDF pane to scroll somewhere; nonce makes repeated jumps distinct. */
 export type Jump = { citekey: string; page: number; highlightId?: string; nonce: number };

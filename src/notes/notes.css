@@ -8,7 +8,7 @@
 .md-editor .cm-md-strong { font-weight: 700; }
 .md-editor .cm-md-em { font-style: italic; }
 .md-editor .cm-md-mark { color: var(--fg-muted); }
-.md-editor .cm-md-link { color: var(--accent); }
+.md-editor .cm-md-link { color: var(--link); }
 .md-editor .cm-md-link[data-href],
 .md-editor .cm-md-link[data-wiki] { cursor: pointer; }
 .md-editor .cm-md-code {

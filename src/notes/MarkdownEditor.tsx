@@ -234,11 +234,11 @@ const theme = EditorView.theme({
   "&.cm-focused": { outline: "none" },
   ".cm-scroller": { fontFamily: "inherit", lineHeight: "1.65" },
   ".cm-content": { caretColor: "var(--fg)", fontFamily: "inherit" },
-  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--fg)" },
+  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--accent)" },
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground": {
-    background: "color-mix(in srgb, var(--accent) 30%, transparent)",
+    background: "var(--selection)",
   },
-});
+}, { dark: true });
 
 const external = Annotation.define<boolean>();
 const editable = new Compartment();

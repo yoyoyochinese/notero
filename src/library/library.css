@@ -133,12 +133,12 @@
   border: none;
   background: none;
   padding: 0;
-  color: var(--accent);
+  color: var(--link);
   text-align: left;
 }
 
 .lib-dialog {
-  background: var(--bg);
+  background: var(--bg-popup);
   color: var(--fg);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -167,4 +167,8 @@
   display: flex;
   justify-content: flex-end;
   gap: 6px;
+}
+
+.lib-canvas {
+  margin: 0 8px 4px 16px;
 }

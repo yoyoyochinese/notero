@@ -1,24 +1,33 @@
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useEffect, useState } from "react";
-import { Group, Panel, Separator } from "react-resizable-panels";
+import { type ReactNode, useEffect, useState } from "react";
+import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from "react-resizable-panels";
 import { CanvasesPanel } from "./canvas/CanvasesPanel";
 import { usePdfDropImport } from "./library/importPdf";
 import { LibraryPanel } from "./library/LibraryPanel";
 import { NotesPanel } from "./notes/NotesPanel";
 import { usePapers } from "./papers";
+import { HighlightsPanel } from "./pdf/HighlightsPanel";
 import { PdfPane } from "./pdf/PdfPane";
 import { RightPane } from "./RightPane";
 import { type SidebarTab, useUI } from "./store";
 import { chooseVault, flushAll, openVault, savedVault } from "./vault";
 import "./App.css";
 
-const TABS: [SidebarTab, string][] = [
-  ["library", "Library"],
-  ["notes", "Notes"],
-  ["canvases", "Canvases"],
+// 16px stroke icons; the label shows for the active tab, or for all tabs when the sidebar is wide.
+const TABS: [SidebarTab, string, ReactNode][] = [
+  ["library", "Library", <path d="M2.5 2.5v11M5.5 2.5v11M8.5 3.2l3.5 10M1.5 13.5h13" />],
+  ["notes", "Notes", <path d="M4 1.5h5.5l3 3v10H4zM6 7.5h4.5M6 10h4.5" />],
+  ["canvases", "Canvases", <path d="M1.5 2h5v4h-5zM9.5 10h5v4h-5zM6.5 4H10a1.5 1.5 0 0 1 1.5 1.5V10" />],
+  ["highlights", "Highlights", <path d="M10 2l4 4-6.5 6.5H3.5v-4zM2 14.5h7" />],
 ];
+
+const icon = (d: ReactNode) => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
+    {d}
+  </svg>
+);
 
 export default function App() {
   const [vault, setVault] = useState<string | null>(null);
@@ -71,37 +80,59 @@ function Workspace() {
       aria-label={`${sidebarOpen ? "Hide" : "Show"} sidebar`}
       onClick={() => setSidebarOpen(!sidebarOpen)}
     >
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
-        <rect x="1.5" y="2.5" width="13" height="11" rx="2" />
-        <path d="M6 2.5v11" />
-      </svg>
+      {icon(<path d="M3.5 2.5h9a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2zM6 2.5v11" />)}
     </button>
   );
+  // The sidebar is a collapsible panel so it keeps its state (filters, scroll) while hidden.
+  const sidebar = usePanelRef();
+  useEffect(() => {
+    const p = sidebar.current;
+    if (p && sidebarOpen === p.isCollapsed()) (sidebarOpen ? p.expand : p.collapse)();
+  }, [sidebar, sidebarOpen]);
+  const layout = useDefaultLayout({ id: "notero-layout", storage: localStorage, onlySaveAfterUserInteractions: true });
   return (
     <div className="app">
       {!sidebarOpen && <div className="rail">{toggle}</div>}
-      <aside className="app-sidebar" hidden={!sidebarOpen}>
-        <nav className="tabs">
-          {TABS.map(([id, label]) => (
-            <button key={id} aria-pressed={sidebarTab === id} onClick={() => setSidebarTab(id)}>
-              {label}
-            </button>
-          ))}
-          <span className="tabs-spacer" />
-          {toggle}
-        </nav>
-        <div className="sidebar-body">
-          {sidebarTab === "library" && <LibraryPanel />}
-          {sidebarTab === "notes" && <NotesPanel />}
-          {sidebarTab === "canvases" && <CanvasesPanel />}
-        </div>
-      </aside>
-      <Group orientation="horizontal" className="main">
-        <Panel defaultSize="50" minSize="20">
+      <Group orientation="horizontal" className="main" defaultLayout={layout.defaultLayout} onLayoutChanged={layout.onLayoutChanged}>
+        <Panel
+          id="sidebar"
+          panelRef={sidebar}
+          defaultSize={280}
+          minSize={200}
+          maxSize={560}
+          collapsible
+          collapsedSize={0}
+          groupResizeBehavior="preserve-pixel-size"
+          onResize={(size) => {
+            const open = size.inPixels > 0; // dragged shut, or reopened by dragging
+            if (open !== useUI.getState().sidebarOpen) setSidebarOpen(open);
+          }}
+        >
+          <aside className="app-sidebar" hidden={!sidebarOpen}>
+            <nav className="tabs">
+              {TABS.map(([id, label, d]) => (
+                <button key={id} aria-pressed={sidebarTab === id} title={label} aria-label={label} onClick={() => setSidebarTab(id)}>
+                  {icon(d)}
+                  <span className="tab-label">{label}</span>
+                </button>
+              ))}
+              <span className="tabs-spacer" />
+              {toggle}
+            </nav>
+            <div className="sidebar-body">
+              {sidebarTab === "library" && <LibraryPanel />}
+              {sidebarTab === "notes" && <NotesPanel />}
+              {sidebarTab === "canvases" && <CanvasesPanel />}
+              {sidebarTab === "highlights" && <HighlightsPanel />}
+            </div>
+          </aside>
+        </Panel>
+        <Separator className="separator" />
+        <Panel id="pdf" minSize="20">
           <PdfPane />
         </Panel>
         <Separator className="separator" />
-        <Panel defaultSize="50" minSize="20">
+        <Panel id="right" minSize="20">
           <RightPane />
         </Panel>
       </Group>

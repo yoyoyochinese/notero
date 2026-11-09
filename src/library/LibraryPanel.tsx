@@ -7,7 +7,7 @@ import type { Author, Paper } from "../types";
 import { trash } from "../vault";
 import { NoteList } from "../notes/NoteList";
 import { importPdfs, useImports } from "./importPdf";
-import { showPaper } from "./showPaper";
+import { openPaperCanvas, showPaper } from "./showPaper";
 import "./library.css";
 
 type SortKey = "added" | "title" | "author" | "year";
@@ -104,7 +104,20 @@ export function LibraryPanel() {
                 </button>
               </div>
             </div>
-            {expanded === p.citekey && <NoteList dir={`papers/${p.citekey}/notes`} />}
+            {expanded === p.citekey && (
+              <>
+                <button
+                  className="lib-canvas"
+                  onClick={() => {
+                    useUI.getState().openPaper(p.citekey);
+                    openPaperCanvas(p.citekey).catch(console.error);
+                  }}
+                >
+                  Canvas
+                </button>
+                <NoteList dir={`papers/${p.citekey}/notes`} />
+              </>
+            )}
           </li>
         ))}
       </ul>
