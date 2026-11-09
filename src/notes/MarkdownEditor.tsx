@@ -4,7 +4,7 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { commonmarkLanguage, markdownKeymap, pasteURLAsLink } from "@codemirror/lang-markdown";
 import type { MarkdownParser } from "@lezer/markdown";
 import { Language, syntaxTree } from "@codemirror/language";
-import { Annotation, Compartment, EditorState, Prec, type Range, StateEffect, StateField } from "@codemirror/state";
+import { Annotation, Compartment, EditorSelection, EditorState, Prec, type Range, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, type DecorationSet, drawSelection, dropCursor, EditorView, keymap, WidgetType } from "@codemirror/view";
 import { message } from "@tauri-apps/plugin-dialog";
 import { CodeMirror, Vim, vim } from "@replit/codemirror-vim";
@@ -275,6 +275,29 @@ Vim.defineMotion("moveByLines", function (this: Record<string, unknown>, cm, hea
   return pos;
 });
 
+// Arrow keys in insert mode (CodeMirror's own motion) skip a rendered formula: vertical motion jumps over block
+// widgets, which hide the formula's source lines. When a move would pass more than one line, stop on the next
+// line instead, where the source is revealed. Otherwise as cursorLineDown/Up and selectLineDown/Up.
+const byLine = (forward: boolean, extend: boolean) => (view: EditorView) => {
+  const { doc, selection } = view.state;
+  const ranges = selection.ranges.map((r) => {
+    if (!extend && !r.empty) return EditorSelection.cursor(forward ? r.to : r.from);
+    let next = view.moveVertically(r, forward);
+    const from = doc.lineAt(r.head);
+    if (Math.abs(doc.lineAt(next.head).number - from.number) > 1) {
+      const line = doc.line(from.number + (forward ? 1 : -1));
+      next = EditorSelection.cursor(Math.min(line.from + r.head - from.from, line.to), 0, undefined, next.goalColumn);
+    }
+    return extend ? EditorSelection.range(r.anchor, next.head, next.goalColumn) : next;
+  });
+  view.dispatch({ selection: EditorSelection.create(ranges, selection.mainIndex), scrollIntoView: true, userEvent: "select" });
+  return true;
+};
+const arrowKeys = [
+  { key: "ArrowDown", run: byLine(true, false), shift: byLine(true, true) },
+  { key: "ArrowUp", run: byLine(false, false), shift: byLine(false, true) },
+];
+
 const external = Annotation.define<boolean>();
 const editable = new Compartment();
 const editableExt = (readOnly: boolean) => [
@@ -301,7 +324,7 @@ export function MarkdownEditor({ value, onChange, readOnly = false, className, v
         doc: value,
         extensions: [
           history(),
-          keymap.of([...defaultKeymap, ...historyKeymap]),
+          keymap.of([...arrowKeys, ...defaultKeymap, ...historyKeymap]),
           drawSelection(),
           dropCursor(),
           EditorView.lineWrapping,

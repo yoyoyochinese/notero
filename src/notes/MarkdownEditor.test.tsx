@@ -54,3 +54,24 @@ test("vim j/k step through every line, including a formula's hidden source lines
   expect(walk("j")).toEqual([2, 3, 4, 5, 6]);
   expect(walk("k")).toEqual([5, 4, 3, 2, 1]);
 });
+
+test("insert-mode arrow keys stop on a formula's lines instead of jumping over the widget", async () => {
+  const { Vim, getCM } = await import("@replit/codemirror-vim");
+  const viewRef: { current: EditorView | null } = { current: null };
+  const doc = ["before", "$$", "E = mc^2", "$$", "after"].join("\n");
+  const host = document.createElement("div");
+  document.body.append(host);
+  await act(async () => createRoot(host).render(<MarkdownEditor value={doc} onChange={() => {}} viewRef={viewRef} />));
+  const v = viewRef.current!;
+  Vim.handleKey(getCM(v)!, "i", "user");
+  // No layout in happy-dom: stand in for CodeMirror's vertical motion skipping the rendered block (line 1 → 5).
+  const { EditorSelection } = await import("@codemirror/state");
+  v.moveVertically = (r, forward) => EditorSelection.cursor(v.state.doc.line(forward ? 5 : 1).from);
+  const press = (key: string) => v.contentDOM.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+  const line = () => v.state.doc.lineAt(v.state.selection.main.head).number;
+  press("ArrowDown");
+  expect(line()).toBe(2);
+  v.dispatch({ selection: { anchor: v.state.doc.line(5).from } });
+  press("ArrowUp");
+  expect(line()).toBe(4);
+});
