@@ -101,3 +101,9 @@
 - Fix: document-line `moveByLines` + `display: flow-root`. Regression test in `MarkdownEditor.test.tsx` (fails without the fix: j jumped straight to the last line).
 - Arrow keys (user request): insert-mode ArrowUp/Down stop on formula lines (decision 69). Unit test stands in for the skipping vertical motion (happy-dom has no layout); fails without the fix.
 - Performance check (WebKit busy meter, paper open, median of 3 interleaved runs, ms per key; builds: before the j/k fix → j/k fix → arrow fix): typing short note 6.6 → 5.1 → 5.1, 200-line note with formulas 7.1 → 6.9 → 6.9, 3000-line note 8.4 → 8.6 → 8.6, j 7.7 → 6.5 → 6.8, ArrowDown 7.7 → 6.0 → 6.0, 300-card canvas 11.7 → 12.0 → 12.1. The 3-card canvas read 4.6 → 6.2 → 6.6 in that sequence, but not in isolation (≈6 ms in all builds, CSS on/off) nor in the sequence without the cursor-movement step (5.6 before, 5.0 after): an order effect (stepping into formulas re-renders them, and that work lands in the next measurement), not a cost of the change.
+
+## UI widths (2026-11-10)
+
+- User: slightly wider default sidebar; default PDF pane slightly wider than the note/canvas pane.
+- The app's localStorage (WKWebView, `~/Library/WebKit/dev.lemur.notero`) already held a dragged layout (`sidebar 9.6%`), which would have hidden new defaults → new storage id (decision 70).
+- Checked in Playwright WebKit at 1400×900: 320 / 594 / 484 px, both fresh and with the old saved layout present. 47 tests pass, tsc clean.

@@ -25,6 +25,10 @@ const TABS: [SidebarTab, string, ReactNode][] = [
   ["highlights", "Highlights", <path d="M10 2l4 4-6.5 6.5H3.5v-4zM2 14.5h7" />],
 ];
 
+// Default widths (px): the PDF gets a little more than half of what the sidebar leaves.
+const SIDEBAR = 320;
+const PDF = Math.round((window.innerWidth - SIDEBAR) * 0.55);
+
 const icon = (d: ReactNode) => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
     {d}
@@ -95,7 +99,8 @@ function Workspace() {
     const p = sidebar.current;
     if (p && sidebarOpen === p.isCollapsed()) (sidebarOpen ? p.expand : p.collapse)();
   }, [sidebar, sidebarOpen]);
-  const layout = useDefaultLayout({ id: "notero-layout", storage: localStorage, onlySaveAfterUserInteractions: true });
+  // Bump the id when the default widths change: a layout saved under the old id would hide them.
+  const layout = useDefaultLayout({ id: "notero-layout-2", storage: localStorage, onlySaveAfterUserInteractions: true });
   return (
     <div className="app">
       {!sidebarOpen && <div className="rail">{toggle}</div>}
@@ -103,7 +108,7 @@ function Workspace() {
         <Panel
           id="sidebar"
           panelRef={sidebar}
-          defaultSize={280}
+          defaultSize={SIDEBAR}
           minSize={200}
           maxSize={560}
           collapsible
@@ -134,7 +139,7 @@ function Workspace() {
           </aside>
         </Panel>
         <Separator className="separator" />
-        <Panel id="pdf" minSize="20">
+        <Panel id="pdf" defaultSize={PDF} minSize="20">
           <PdfPane />
         </Panel>
         <Separator className="separator" />
