@@ -10,7 +10,9 @@ import {
   Position,
   useReactFlow,
 } from "@xyflow/react";
-import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
+import type { EditorView } from "@codemirror/view";
+import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
+import { MarkdownEditor } from "../notes/MarkdownEditor";
 import { useUI } from "../store";
 import { readText } from "../vault";
 import type { FlowEdge, FlowNode, Side } from "./jsonCanvas";
@@ -40,33 +42,24 @@ function Frame({ node, className = "", children }: { node: NodeProps<FlowNode>; 
   );
 }
 
-/** Stand-in for the card's Markdown editor (to be replaced by notes/MarkdownEditor). */
-export function CardTextStandIn({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  const [editing, setEditing] = useState(false);
-  if (editing)
-    return (
-      <textarea
-        className="card-text nodrag nowheel"
-        autoFocus
-        defaultValue={value}
-        onBlur={(e) => {
-          setEditing(false);
-          if (e.target.value !== value) onChange(e.target.value);
-        }}
-      />
-    );
-  return (
-    <div className="card-text" onDoubleClick={() => setEditing(true)}>
-      {value || <span className="card-muted">Double-click to edit</span>}
-    </div>
-  );
-}
-
+/** Markdown card: rendered while idle (so it drags like a card), editable after a double-click until deselected. */
 export function TextCard(node: NodeProps<FlowNode>) {
   const { updateNodeData } = useReactFlow();
+  const [editing, setEditing] = useState(false);
+  const view = useRef<EditorView | null>(null);
+  const text = node.data.text ?? "";
+  useEffect(() => {
+    if (!node.selected) setEditing(false);
+  }, [node.selected]);
+  useEffect(() => {
+    if (editing) view.current?.focus();
+  }, [editing]);
   return (
     <Frame node={node}>
-      <CardTextStandIn value={node.data.text ?? ""} onChange={(text) => updateNodeData(node.id, { text })} />
+      <div className={editing ? "card-text nodrag nowheel" : "card-text"} onDoubleClick={() => setEditing(true)}>
+        {!editing && !text && <span className="card-muted">Double-click to edit</span>}
+        <MarkdownEditor value={text} onChange={(t) => updateNodeData(node.id, { text: t })} readOnly={!editing} viewRef={view} />
+      </div>
     </Frame>
   );
 }
@@ -89,8 +82,9 @@ export function FileCard(node: NodeProps<FlowNode>) {
           </button>
         )}
       </div>
-      {/* Stand-in for the rendered note (to be replaced by notes/MarkdownEditor readOnly). */}
-      <div className="card-text">{text === null ? <span className="card-muted">missing</span> : text}</div>
+      <div className="card-text">
+        {text === null ? <span className="card-muted">missing</span> : <MarkdownEditor value={text ?? ""} onChange={() => {}} readOnly />}
+      </div>
     </Frame>
   );
 }

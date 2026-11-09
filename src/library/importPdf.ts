@@ -99,7 +99,9 @@ export function usePdfDropImport() {
     const unlisten = getCurrentWebview().onDragDropEvent((e) => {
       if (e.payload.type !== "drop") return;
       const pdfs = e.payload.paths.filter((p) => p.toLowerCase().endsWith(".pdf"));
-      if (pdfs.length) importPdfs(pdfs);
+      if (!pdfs.length) return;
+      useUI.getState().setSidebarTab("library");
+      importPdfs(pdfs);
     });
     return () => void unlisten.then((f) => f());
   }, []);

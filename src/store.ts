@@ -42,7 +42,10 @@ export const useUI = create<State>((set) => ({
   setSidebarTab: (sidebarTab) => set({ sidebarTab, sidebarOpen: true }),
   setRightTab: (rightTab) => set({ rightTab }),
   openPaper: (citekey) => set({ citekey, sidebarOpen: false }),
-  openNote: (notePath) => set({ notePath, rightTab: "note" }),
+  openNote: (notePath) => {
+    const ck = /^papers\/([^/]+)\/notes\//.exec(notePath)?.[1];
+    set({ notePath, rightTab: "note", ...(ck && { citekey: ck }) });
+  },
   openCanvas: (canvasPath) => set({ canvasPath, rightTab: "canvas" }),
   jumpTo: (citekey, page, highlightId) =>
     set({ citekey, jump: { citekey, page, highlightId, nonce: Date.now() } }),

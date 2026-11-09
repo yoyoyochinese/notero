@@ -5,8 +5,8 @@ import { authorLabel } from "../quote";
 import { useUI } from "../store";
 import type { Author, Paper } from "../types";
 import { trash } from "../vault";
-import { importPdfs, useImports, usePdfDropImport } from "./importPdf";
-import { PaperNotesStandIn } from "./PaperNotesStandIn";
+import { NoteList } from "../notes/NoteList";
+import { importPdfs, useImports } from "./importPdf";
 import "./library.css";
 
 type SortKey = "added" | "title" | "author" | "year";
@@ -20,7 +20,6 @@ const SORTS: Record<SortKey, [string, (a: Paper, b: Paper) => number]> = {
 const fullName = (a: Author) => (a.given ? `${a.given} ${a.family}` : a.family);
 
 export function LibraryPanel() {
-  usePdfDropImport();
   const papers = usePapers((s) => s.papers);
   const openCitekey = useUI((s) => s.citekey);
   const { pending, errors } = useImports();
@@ -102,7 +101,7 @@ export function LibraryPanel() {
                 </button>
               </div>
             </div>
-            {expanded === p.citekey && <PaperNotesStandIn citekey={p.citekey} />}
+            {expanded === p.citekey && <NoteList dir={`papers/${p.citekey}/notes`} />}
           </li>
         ))}
       </ul>

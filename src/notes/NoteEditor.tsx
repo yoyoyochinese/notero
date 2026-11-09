@@ -17,7 +17,9 @@ export function NoteEditor({ path }: { path: string }) {
   useEffect(() => {
     const v = view.current;
     if (!insert || !v) return;
-    const { from, insert: text } = paragraphInsert(v.state.doc.toString(), v.state.selection.main.to, insert.text);
+    const doc = v.state.doc;
+    const at = v.state.selection.main.to || doc.length; // cursor never placed (0) → append
+    const { from, insert: text } = paragraphInsert(doc.toString(), at, insert.text);
     v.dispatch({ changes: { from, insert: text }, selection: { anchor: from + text.length }, scrollIntoView: true });
     v.focus();
     useUI.getState().clearInsert();

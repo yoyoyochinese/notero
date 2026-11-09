@@ -25,3 +25,11 @@
 - Wave 0 review found 10 defects, 3 high (dot temp files blocked by fs scope = nothing would save in the real app; papers write race; reload overwrote theirs). All fixed; the reviewer's repros became `src/saving.test.ts`. Lesson: fake-fs unit tests can't see capability/scope problems — the real app must be run before trusting the save path.
 - Correction: first scope check for `move_to_trash` used `app.fs_scope()`, which only holds the runtime scope, not capability scopes (read plugin-fs `resolve_path`) → would have refused everything. Replaced with a vault-item path rule.
 - Reports saved under `team/reports/` (pdf and notes condensed by the coordinator); running memo in `team/MEMO.md`.
+
+## Wave 2 — integration (coordinator, 2026-11-09)
+
+- Done by the coordinator directly (small edits across already-reviewed files; spawning workers would cost more than it saves).
+- Swapped stand-ins: canvas text cards and file cards now use `MarkdownEditor` (text cards read-only until double-click, so they still drag); library rows use `NoteList`; `PaperNotesStandIn` deleted.
+- `usePdfDropImport` mounted in the app shell; a drop switches to the Library tab. Opening a paper's note shows its PDF. Insert lands at the end when the cursor was never placed. Canvas delete keys scoped to the canvas.
+- Decisions 32–43 recorded.
+- `bun run tauri dev` builds and launches the app with no runtime errors in the log. GUI behaviour (drag & drop, selection rects, live APIs) still needs a hands-on check — the coordinator can't drive the window.

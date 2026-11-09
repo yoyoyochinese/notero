@@ -73,6 +73,13 @@ function Canvas({ text, onChange }: { text: string; onChange: (text: string) => 
   const [nodes, setNodes] = useState(init?.nodes ?? []);
   const [edges, setEdges] = useState(init?.edges ?? []);
   const saved = useRef(init && serializeCanvas(init.doc, init.nodes, init.edges));
+  // React Flow listens for Delete on the whole document; only honour it while the canvas was clicked last.
+  const [active, setActive] = useState(false);
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => setActive(!!box.current?.contains(e.target as Node));
+    document.addEventListener("pointerdown", onDown, true);
+    return () => document.removeEventListener("pointerdown", onDown, true);
+  }, []);
   const [notes, setNotes] = useState<string[] | null>(null);
   const box = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
@@ -161,7 +168,7 @@ function Canvas({ text, onChange }: { text: string; onChange: (text: string) => 
           ])
         }
         connectionMode={ConnectionMode.Loose}
-        deleteKeyCode={["Backspace", "Delete"]}
+        deleteKeyCode={active ? ["Backspace", "Delete"] : null}
         zoomOnDoubleClick={false}
         minZoom={0.1}
         fitView

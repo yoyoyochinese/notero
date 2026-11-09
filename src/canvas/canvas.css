@@ -64,6 +64,10 @@
   white-space: nowrap;
 }
 
+.card-text.nowheel {
+  overflow: auto;
+}
+
 .card-text {
   flex: 1;
   min-height: 0;
@@ -71,16 +75,6 @@
   padding: 8px 10px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
-
-textarea.card-text {
-  width: 100%;
-  resize: none;
-  border: none;
-  outline: none;
-  font: inherit;
-  color: inherit;
-  background: var(--bg);
 }
 
 .card-muted {

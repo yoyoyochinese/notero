@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Group, Panel, Separator } from "react-resizable-panels";
 import { CanvasesPanel } from "./canvas/CanvasesPanel";
+import { usePdfDropImport } from "./library/importPdf";
 import { LibraryPanel } from "./library/LibraryPanel";
 import { NotesPanel } from "./notes/NotesPanel";
 import { usePapers } from "./papers";
@@ -39,6 +40,7 @@ export default function App() {
 }
 
 function Workspace() {
+  usePdfDropImport();
   const { sidebarOpen, sidebarTab, setSidebarOpen, setSidebarTab } = useUI();
   return (
     <div className="app">

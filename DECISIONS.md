@@ -52,6 +52,24 @@ Every worker reads this before starting. Numbered; never renumber. Phase: G = gr
 30. **Shared modules owned by the coordinator** (workers propose changes, don't edit): `src/types.ts`, `src/vault.ts`, `src/papers.ts`, `src/store.ts`, `src/useFileDoc.ts`, `src/DocStatusBar.tsx`, `src/quote.ts`, `src/pdfjs.ts`, `src/App.tsx`, `src/RightPane.tsx`, `src/App.css`, `package.json`, `src-tauri/**`.
 31. **Workers do not run `tauri dev` / cargo** (each worktree would rebuild Rust). Verification = `bun run test`, `bunx tsc --noEmit`, `bun run build`. The coordinator runs the app at integration.
 
+## Wave 1 workers' defaults, accepted by the coordinator (W1, 2026-11-09)
+
+32. **Metadata**: arXiv ID wins over a DOI found on page 1 (a page-1 DOI may be a cited paper's); arXiv IDs stored without version; arXiv venue = journal ref, else `arXiv`; embedded PDF metadata never supplies a year.
+33. **Highlights**: a selection spanning pages is cut at the end of the first page; "Comment" / "Insert into note" from the selection popup create a yellow highlight.
+34. **Wikilink resolution**: exact-case match first, then case-insensitive; on duplicates the first sorted path wins (free notes before paper notes).
+35. **Canvas**: the file is never rewritten just by opening it; invalid JSON is shown as an error and never saved over; groups and link nodes render as plain movable boxes and round-trip unchanged.
+36. **Confirm/alert** use the native plugin-dialog `ask` / `message` (WKWebView `window.confirm` is unreliable).
+
+## Coordinator (W1 review fixes and W2 integration, 2026-11-09)
+
+37. **Unsaved edits are never dropped**: if a document is closed while it can't be saved (conflict or error), the text is written next to it as `<name> (conflict).<ext>` and the user is told. Rename / delete first flush every open document.
+38. **fs scope** allows dot path segments (`requireLiteralLeadingDot: false`, needed for the atomic-write temp files) and denies `~/.ssh`, `~/.gnupg`, `~/.aws`, `~/Library/Keychains`.
+39. **`move_to_trash`** only accepts canonical paths under `$HOME` or `/Volumes` whose parent folder is `papers`, `notes` or `canvases`.
+40. **Dropping a PDF anywhere** imports it and switches the sidebar to the Library tab (where progress and errors show).
+41. **Opening a paper's note** (`papers/<ck>/notes/…`) also shows that paper in the PDF pane. Free notes keep the current PDF (decision 9).
+42. **Insert into note** goes at the cursor; if the cursor was never placed (still at position 0) it is appended at the end.
+43. **Canvas text cards** render read-only (draggable) until double-clicked; editing ends when the card is deselected. Delete/Backspace removes canvas cards only while the canvas was the last thing clicked.
+
 ## Open
 
 (none)
