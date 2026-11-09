@@ -7,7 +7,9 @@ import { Language, syntaxTree } from "@codemirror/language";
 import { Annotation, Compartment, EditorState, Prec, type Range, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, type DecorationSet, drawSelection, dropCursor, EditorView, keymap, WidgetType } from "@codemirror/view";
 import { message } from "@tauri-apps/plugin-dialog";
+import { Vim, vim } from "@replit/codemirror-vim";
 import { type RefObject, useEffect, useRef } from "react";
+import { flushAll } from "../vault";
 import { followLink, openWikilink } from "./links";
 import "./notes.css";
 
@@ -256,9 +258,18 @@ const theme = EditorView.theme({
   },
 }, { dark: true });
 
+// :w saves now instead of waiting for the autosave.
+Vim.defineEx("write", "w", () => void flushAll());
+
 const external = Annotation.define<boolean>();
 const editable = new Compartment();
-const editableExt = (readOnly: boolean) => [EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)];
+const editableExt = (readOnly: boolean) => [
+  EditorState.readOnly.of(readOnly),
+  EditorView.editable.of(!readOnly),
+  // Vim only while editable: read-only previews (idle canvas cards, file cards) would each show its cursor.
+  // Highest precedence, ahead of the Markdown keymap, so Enter/Backspace in normal mode move the cursor.
+  readOnly ? [] : Prec.highest(vim()),
+];
 
 export function MarkdownEditor({ value, onChange, readOnly = false, className, viewRef }: Props) {
   const host = useRef<HTMLDivElement>(null);
