@@ -1,4 +1,5 @@
 // In-memory library, loaded from papers/*/paper.json. Every change is written straight back.
+import { message } from "@tauri-apps/plugin-dialog";
 import { create } from "zustand";
 import type { Paper, PaperFile } from "./types";
 import { ConflictError, listDir, readJson, writeJson } from "./vault";
@@ -47,7 +48,8 @@ export const usePapers = create<State>((set, get) => ({
       mtimes[citekey] = await writeJson(jsonPath(citekey), next, mtimes[citekey]);
     } catch (err) {
       set((s) => ({ papers: { ...s.papers, [citekey]: old } }));
-      if (err instanceof ConflictError) alert(`${err.message}. Your change was not saved; reopen the vault to reload.`);
+      if (err instanceof ConflictError)
+        message(`${err.message}. Your change was not saved; reopen the vault to reload.`, { kind: "warning" });
       throw err;
     }
   },
