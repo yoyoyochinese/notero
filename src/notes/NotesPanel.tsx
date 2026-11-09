@@ -1,4 +1,5 @@
-// Placeholder from Wave 0; replaced by the notes worker.
+import { NoteList } from "./NoteList";
+
 export function NotesPanel() {
-  return <p className="empty">Notes (not implemented yet)</p>;
+  return <NoteList dir="notes" />;
 }
