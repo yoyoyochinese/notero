@@ -1,0 +1,57 @@
+# Decisions
+
+Every worker reads this before starting. Numbered; never renumber. Phase: G = grilling with the user, W0/W1/W2 = waves.
+
+## Product (user, 2026-11-09, G)
+
+1. **Platform**: Tauri 2 + React + TypeScript, macOS first. UI English only.
+2. **Storage = vault folder of plain files** (Obsidian-compatible), no database:
+   ```
+   vault/papers/<citekey>/paper.pdf
+   vault/papers/<citekey>/paper.json      metadata + highlights (src/types.ts PaperFile)
+   vault/papers/<citekey>/notes/*.md      any number of notes per paper
+   vault/notes/*.md                       free notes (not tied to a paper)
+   vault/canvases/*.canvas                JSON Canvas, global (span papers)
+   ```
+   A note belongs to a paper only by living in its folder (no frontmatter).
+3. **One vault**, chosen on first launch, path remembered (localStorage).
+4. **Metadata pipeline**: DOI / arXiv ID from first-page text → CrossRef / arXiv API → else PDF embedded metadata → else filename; user can edit afterwards.
+5. **Adding PDFs**: drag & drop onto the window or file dialog; the PDF is **copied** into the vault.
+6. **Duplicates**: same DOI, arXiv ID or sha256 as an existing paper → don't add, open the existing one.
+7. **Deleting a paper** moves its whole folder to the macOS Trash.
+8. **Library list**: title, authors, year, venue; sortable; text filter. No collections/tags/BibTeX yet.
+9. **Layout**: collapsible left sidebar with tabs Library / Notes / Canvases; PDF centre, Note/Canvas tabs right; draggable splitter, 50/50 default; opening a paper collapses the sidebar. Opening a free note or canvas keeps the current PDF.
+10. **PDF viewer**: pdf.js. Highlights stored in paper.json, the PDF is never modified.
+11. **Highlights**: text-selection only, 5 colours (yellow, red, green, blue, purple). Select text → popup (colour, comment, insert into note). Click highlight → edit comment / colour / delete. Toggleable highlight list in the PDF pane: click to jump, drag into a note or canvas.
+12. **Notes**: CodeMirror 6 live preview (Obsidian style): headings, emphasis, links, inline code, math (KaTeX). No image paste yet.
+13. **Highlight quote in Markdown** (see `src/quote.ts` formatQuote):
+    ```md
+    > quoted text
+    > — [Smith et al. 2024, p.3](notero://smith2024attention/hl-1a2b3c4d)
+    ```
+    Clicking the link in the app jumps the PDF to the highlight. In Obsidian it is just a quote.
+14. **`[[Note name]]` links**: click opens the note (resolved by file name anywhere in the vault); creates it in `notes/` if missing. No autocomplete/backlinks yet.
+15. **Canvas**: React Flow, saved as JSON Canvas (`.canvas`, opens in Obsidian). Cards: Markdown text card, embedded note (file node), highlight quote card (stored as a plain text node, so Obsidian shows it). Edge labels. No groups / web-link cards yet.
+16. **Saving**: autosave 1 s after typing stops; atomic write (temp file + rename); before saving check the file's mtime and, if another app changed it, don't overwrite — warn and let the user choose. No live reload of external changes yet.
+17. **Highlights → notes/canvas ship in the MVP** (the core value of the app).
+18. **Tech**: Tauri plugins fs / http / dialog, no custom Rust except `move_to_trash`. zustand for state, react-resizable-panels for the splitter. Follow OS light/dark; PDF pages stay white.
+19. **Tests**: vitest for pure logic only (citekey, DOI/arXiv extraction, quote/link format, JSON Canvas conversion, mtime conflict check). UI checked by running the app. No E2E yet.
+20. **Process**: Wave 0 (coordinator: foundation) → Wave 1 (4 parallel workers) → Wave 2 (integration) → fresh-context review after each wave. Branch `feat/mvp` off `master`, worktree per worker, no push.
+
+## Coordinator (W0, 2026-11-09)
+
+21. **Citekey** = `<first author family name><year><first title word>`, lowercased ASCII (diacritics stripped, non-alphanumerics dropped), skipping title stopwords (a, an, the, on, of, in, for, to, and, with, is, are). Missing year → omitted; no author → derived from the filename. Taken → append `a`, `b`, … The citekey is fixed at import; editing metadata later does not rename the folder.
+22. **Highlight position**: page (1-based) + rects as page-relative fractions (0–1, origin top-left) + selected text. Highlight id = `hl-` + 8 random hex chars.
+23. **New notes and canvases** are named `Untitled.md` / `Untitled.canvas`, then `Untitled 1`, `Untitled 2`… (`createFile` in `src/vault.ts`).
+24. **Rename / delete** of notes and canvases from the sidebar: rename in place (does not update `[[links]]` pointing at it); delete moves to Trash.
+25. **Quote format** includes the highlight's comment as a paragraph after the quote, if any. Author label: `A`, `A & B`, `A et al.`.
+26. **Highlight quote card on the canvas** = a JSON Canvas text node whose text is `formatQuote(...)`, coloured with the preset matching the highlight colour (`canvasColor` in `src/quote.ts`). No special node type, so it round-trips through Obsidian.
+27. **Embedded note card** (file node) shows the note read-only (rendered); an "Open" action opens it in the Note tab for editing.
+28. **Dragging a highlight** sets `text/plain` = formatQuote output and `application/x-notero-highlight` = `{"citekey","id"}` JSON. Drop targets: the note editor (plain text drop) and the canvas (creates a quote card).
+29. **"Insert into note"** calls `useUI.requestInsert(markdown)`; if no note is open, first create one in the paper's `notes/` folder and open it. NoteEditor inserts at the cursor and calls `clearInsert()`.
+30. **Shared modules owned by the coordinator** (workers propose changes, don't edit): `src/types.ts`, `src/vault.ts`, `src/papers.ts`, `src/store.ts`, `src/useFileDoc.ts`, `src/DocStatusBar.tsx`, `src/quote.ts`, `src/pdfjs.ts`, `src/App.tsx`, `src/RightPane.tsx`, `src/App.css`, `package.json`, `src-tauri/**`.
+31. **Workers do not run `tauri dev` / cargo** (each worktree would rebuild Rust). Verification = `bun run test`, `bunx tsc --noEmit`, `bun run build`. The coordinator runs the app at integration.
+
+## Open
+
+(none)

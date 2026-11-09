@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "notero",
+  "productName": "Notero",
   "version": "0.1.0",
   "identifier": "dev.lemur.notero",
   "build": {
@@ -12,9 +12,9 @@
   "app": {
     "windows": [
       {
-        "title": "notero",
-        "width": 800,
-        "height": 600
+        "title": "Notero",
+        "width": 1400,
+        "height": 900
       }
     ],
     "security": {

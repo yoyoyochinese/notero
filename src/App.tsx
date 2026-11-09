@@ -1,51 +1,77 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useState } from "react";
+import { Group, Panel, Separator } from "react-resizable-panels";
+import { CanvasesPanel } from "./canvas/CanvasesPanel";
+import { LibraryPanel } from "./library/LibraryPanel";
+import { NotesPanel } from "./notes/NotesPanel";
+import { usePapers } from "./papers";
+import { PdfPane } from "./pdf/PdfPane";
+import { RightPane } from "./RightPane";
+import { type SidebarTab, useUI } from "./store";
+import { chooseVault, openVault, savedVault } from "./vault";
 import "./App.css";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+const TABS: [SidebarTab, string][] = [
+  ["library", "Library"],
+  ["notes", "Notes"],
+  ["canvases", "Canvases"],
+];
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+export default function App() {
+  const [vault, setVault] = useState<string | null>(null);
+  const load = usePapers((s) => s.load);
 
-  return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+  useEffect(() => {
+    const dir = savedVault();
+    if (dir) openVault(dir).then(() => setVault(dir), (err) => console.error("cannot open saved vault", err));
+  }, []);
+  useEffect(() => {
+    if (vault) load();
+  }, [vault, load]);
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+  if (!vault)
+    return (
+      <div className="welcome">
+        <h1>Notero</h1>
+        <button onClick={async () => setVault(await chooseVault())}>Choose vault folder…</button>
       </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
-  );
+    );
+  return <Workspace />;
 }
 
-export default App;
+function Workspace() {
+  const { sidebarOpen, sidebarTab, setSidebarOpen, setSidebarTab } = useUI();
+  return (
+    <div className="app">
+      <aside className="sidebar" hidden={!sidebarOpen}>
+        <nav className="tabs">
+          {TABS.map(([id, label]) => (
+            <button key={id} aria-pressed={sidebarTab === id} onClick={() => setSidebarTab(id)}>
+              {label}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-body">
+          {sidebarTab === "library" && <LibraryPanel />}
+          {sidebarTab === "notes" && <NotesPanel />}
+          {sidebarTab === "canvases" && <CanvasesPanel />}
+        </div>
+      </aside>
+      <button
+        className="sidebar-toggle"
+        title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+      >
+        {sidebarOpen ? "‹" : "›"}
+      </button>
+      <Group orientation="horizontal" className="main">
+        <Panel defaultSize="50" minSize="20">
+          <PdfPane />
+        </Panel>
+        <Separator className="separator" />
+        <Panel defaultSize="50" minSize="20">
+          <RightPane />
+        </Panel>
+      </Group>
+    </div>
+  );
+}
