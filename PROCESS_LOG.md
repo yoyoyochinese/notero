@@ -19,3 +19,9 @@
 - Launched 4 workers in parallel, each in its own worktree, each owning one folder: library (`src/library/`), pdf (`src/pdf/`), notes (`src/notes/`), canvas (`src/canvas/`). Plus a fresh-context reviewer for Wave 0, running concurrently.
 - Cross-worker dependencies handled with stand-ins (skill rule: a stand-in gets a different name): canvas uses `CardTextStandIn` until notes' `MarkdownEditor` lands; library uses `PaperNotesStandIn` until notes' `NoteList` lands. Swapped in Wave 2.
 - Risk carried to integration: Tauri `dragDropEnabled` vs in-webview HTML5 drag & drop (highlight → note/canvas). Workers can't run the app; coordinator verifies.
+- All 4 workers finished; merged library (e9b6c93), canvas (5661605, e5fbe2e), pdf (b9ac4a6), notes (641e387) with no conflicts (folder ownership worked). 35 tests, tsc and build pass on `feat/mvp`.
+- Correction: vitest picked up tests inside agent worktrees (`.claude/worktrees`) → 59 phantom tests; excluded `.claude/**` in vitest and git.
+- Correction: `window.confirm`/`alert` may not work in WKWebView → told running workers mid-task to use plugin-dialog `ask`/`message`; canvas worker had already finished and was resumed with the message.
+- Wave 0 review found 10 defects, 3 high (dot temp files blocked by fs scope = nothing would save in the real app; papers write race; reload overwrote theirs). All fixed; the reviewer's repros became `src/saving.test.ts`. Lesson: fake-fs unit tests can't see capability/scope problems — the real app must be run before trusting the save path.
+- Correction: first scope check for `move_to_trash` used `app.fs_scope()`, which only holds the runtime scope, not capability scopes (read plugin-fs `resolve_path`) → would have refused everything. Replaced with a vault-item path rule.
+- Reports saved under `team/reports/` (pdf and notes condensed by the coordinator); running memo in `team/MEMO.md`.

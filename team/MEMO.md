@@ -18,3 +18,20 @@ Conclusions, proposals and open questions from worker reports. Integration reads
 - Display: edges without sides drawn from top (Obsidian: nearest). Low.
 - File card doesn't refresh after Note-tab edits (accepted, decision 16).
 - Verify in app: DnD vs dragDropEnabled; resize/connect/edge labels; Obsidian round trip.
+
+## review W0 — all 10 findings fixed in 7b6c066 (see team/reports/review-w0.md)
+
+## pdf (W1, merged b9ac4a6)
+- Insert with no note open: createFile + openNote + requestInsert immediately → NoteEditor must hold `insert` until loaded (check notes impl). Notes sidebar won't show the new note until it refreshes (NoteList refreshes on notePath change → ok).
+- Open questions for user: none important (cross-page cut, yellow default).
+
+## notes (W1, merged 641e387)
+- Insert in a freshly opened note lands at top (cursor 0). Coordinator call: insert at END when the editor has never been focused — more natural; decide in W2.
+
+## Wave 2 work list
+1. Mount `usePdfDropImport()` in App; move import status to shell. Ensure handler only acts on file drops.
+2. Library: `PaperNotesStandIn` → `NoteList dir="papers/<ck>/notes"`; delete stand-in.
+3. Canvas: `CardTextStandIn` → `MarkdownEditor className="nodrag nowheel"`; FileCard → `MarkdownEditor readOnly`.
+4. Canvas Backspace/Delete scoped to canvas focus.
+5. Insert position: end of note if never focused.
+6. Verify in running app: DnD (highlight → note/canvas) vs dragDropEnabled; import + CrossRef/arXiv; save/scope; trash; notero:// jump.
