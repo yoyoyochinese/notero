@@ -7,7 +7,7 @@ import { Language, syntaxTree } from "@codemirror/language";
 import { Annotation, Compartment, EditorState, Prec, type Range, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, type DecorationSet, drawSelection, dropCursor, EditorView, keymap, WidgetType } from "@codemirror/view";
 import { message } from "@tauri-apps/plugin-dialog";
-import { Vim, vim } from "@replit/codemirror-vim";
+import { CodeMirror, Vim, vim } from "@replit/codemirror-vim";
 import { type RefObject, useEffect, useRef } from "react";
 import { flushAll } from "../vault";
 import { followLink, openWikilink } from "./links";
@@ -260,6 +260,20 @@ const theme = EditorView.theme({
 
 // :w saves now instead of waiting for the autosave.
 Vim.defineEx("write", "w", () => void flushAll());
+
+// j/k by document line. codemirror-vim's own j/k first move through the rendered view and, when that lands
+// past the next line, assume folded text and jump there; live preview's formula widgets looked like folds, so
+// j/k skipped formulas and the lines near them. Otherwise as the original (column kept, counts, + - _).
+const verticalMotions = ["moveByLines", "moveByDisplayLines", "moveByScroll", "moveToColumn", "moveToEol"];
+Vim.defineMotion("moveByLines", function (this: Record<string, unknown>, cm, head, args, vimState) {
+  if (!verticalMotions.some((m) => this[m] === vimState.lastMotion)) vimState.lastHPos = head.ch;
+  const n = (args.repeat ?? 1) + (args.repeatOffset ?? 0);
+  const line = Math.min(Math.max(head.line + (args.forward ? n : -n), cm.firstLine()), cm.lastLine());
+  if (args.toFirstChar) vimState.lastHPos = cm.getLine(line).search(/\S|$/);
+  const pos = new CodeMirror.Pos(line, vimState.lastHPos);
+  vimState.lastHSPos = cm.charCoords(pos, "div").left; // goal for gj/gk afterwards
+  return pos;
+});
 
 const external = Annotation.define<boolean>();
 const editable = new Compartment();

@@ -93,3 +93,9 @@
 - Results in WebKit, per key, paper open (before → after, median of runs, ±2 ms noise): short note 12.5 → 6; 200-line note 12.6 → 7; 3000-line note 15 → 8.5; 3-card canvas 12.7 → 5; 300-card canvas 21 → 11.
 - Correction: my first vim build showed a vim cursor in every read-only card; vim now lives in the editable compartment.
 - Lesson: measure in the engine the app ships with; Chromium hid the WebKit-specific cost entirely.
+
+## j/k over formulas (2026-11-09)
+
+- Reproduced in Playwright WebKit (`vimmath.mjs`): j from the line above a `$$` block landed below it; lines with inline math and the line after a display formula were skipped too.
+- Read the code: vim's `moveByLines` calls `findPosV` → `view.moveVertically`, and jumps to that result when it passes the target line (a fold heuristic). A probe comparing CodeMirror's height map with the DOM showed a second cause: formula widgets measured ~30 px short (KaTeX's `.katex-display` margin collapsing out of the widget), so heights drifted below each formula; mouse clicks below formulas also landed on the wrong line (checked with and without the fix).
+- Fix: document-line `moveByLines` + `display: flow-root`. Regression test in `MarkdownEditor.test.tsx` (fails without the fix: j jumped straight to the last line).

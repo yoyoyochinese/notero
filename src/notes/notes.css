@@ -22,7 +22,8 @@
   padding-left: 12px;
   color: var(--fg-muted);
 }
-.md-editor .cm-md-math-block { text-align: center; }
+/* flow-root keeps KaTeX's display margins inside the widget, so CodeMirror measures its real height */
+.md-editor .cm-md-math-block { text-align: center; display: flow-root; }
 .md-editor .cm-md-bullet { color: var(--fg-muted); padding-right: 0.15em; }
 
 /* Note tab */

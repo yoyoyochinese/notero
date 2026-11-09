@@ -10,6 +10,7 @@ vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn() }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ message: vi.fn() }));
 vi.mock("@tauri-apps/plugin-fs", () => ({}));
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
+vi.mock("katex", () => ({ default: { render: vi.fn() } })); // happy-dom runs in quirks mode, which KaTeX refuses
 const { MarkdownEditor } = await import("./MarkdownEditor");
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -38,4 +39,18 @@ test("a lagging echo of our own text doesn't move the cursor", async () => {
   type("?");
   for (let i = 0; i < 3; i++) await tick();
   expect(v.state.doc.toString()).toBe("hello,!? world");
+});
+
+test("vim j/k step through every line, including a formula's hidden source lines", async () => {
+  const { Vim, getCM } = await import("@replit/codemirror-vim");
+  const viewRef: { current: EditorView | null } = { current: null };
+  const doc = ["before", "$$", "E = mc^2", "$$", "after $x$", "last"].join("\n");
+  const host = document.createElement("div");
+  document.body.append(host);
+  await act(async () => createRoot(host).render(<MarkdownEditor value={doc} onChange={() => {}} viewRef={viewRef} />));
+  const v = viewRef.current!;
+  const line = () => v.state.doc.lineAt(v.state.selection.main.head).number;
+  const walk = (key: string) => Array.from({ length: 5 }, () => (Vim.handleKey(getCM(v)!, key, "user"), line()));
+  expect(walk("j")).toEqual([2, 3, 4, 5, 6]);
+  expect(walk("k")).toEqual([5, 4, 3, 2, 1]);
 });
