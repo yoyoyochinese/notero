@@ -73,7 +73,18 @@ function PdfView({ paper }: { paper: Paper }) {
     const ac = new AbortController();
     const eventBus = new EventBus();
     const linkService = new PDFLinkService({ eventBus });
-    const viewer = new PDFViewer({ container, eventBus, linkService, removePageBorders: true });
+    // Highlights are ours, so pdf.js's annotation editor is off: in WebKit it kept closed viewers (and their
+    // pages) alive. maxCanvasPixels (default 2^25): a zoomed page gets a lower-resolution canvas plus a sharp
+    // one for the visible part, instead of up to ~43 MB per page; a page-width page in a pane under ~950 px
+    // stays below it.
+    const viewer = new PDFViewer({
+      container,
+      eventBus,
+      linkService,
+      removePageBorders: true,
+      annotationEditorMode: pdfjs.AnnotationEditorType.DISABLE,
+      maxCanvasPixels: 2 ** 22,
+    });
     linkService.setViewer(viewer);
     viewerRef.current = viewer;
     eventBus.on("pagesinit", () => {
@@ -117,6 +128,8 @@ function PdfView({ paper }: { paper: Paper }) {
       ac.abort();
       refit.disconnect();
       cancelAnimationFrame(frame);
+      // setDocument(null) only drops the page views; their canvases (~7 MB each at 2x) would wait for GC.
+      for (let i = 0; i < viewer.pagesCount; i++) viewer.getPageView(i)?.destroy();
       viewer.setDocument(null);
       task?.destroy();
     };

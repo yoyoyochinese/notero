@@ -119,6 +119,17 @@ Measured first (harness benchmark on the production build: 300 papers, 3000-line
 
 70. **Default pane widths** (user request): sidebar 280 → 320 px; the PDF pane gets 55% of the width the sidebar leaves, the note/canvas pane the rest (1400 px window: 320 / 594 / 484). The layout storage id became `notero-layout-2`, because a layout saved after a drag overrides the defaults (the user's app had one). Double-clicking the PDF | note separator resets that split.
 
+## Memory (2026-11-12)
+
+User: the `tauri://localhost` process (WKWebView WebContent) uses 600–700 MB. Measured in the running app (`footprint`: peak 608 MB, mostly graphics + WebKit Malloc) and reproduced in Playwright WebKit with the user's vault (5 papers): reading one paper ~455 MB (WebContent + GPU), switching papers grew it to 620 MB, peak 870. Causes and fixes:
+
+71. **Closing a PDF destroys its page views** before `setDocument(null)`: pdf.js only drops them, so up to 10 page canvases (~7–10 MB each at 2×) waited for the GC.
+72. **pdf.js's annotation editor is off** (`annotationEditorMode: DISABLE`). Highlights are Notero's own overlay, so nothing used it; in WebKit (not Chromium) its default NONE mode kept closed `PDFViewer`s, with their pages and our closures, alive (15 of 15 after 15 opens; DISABLE: only the open one). What inside the editor holds them was not found — turning the editor on would bring the leak back.
+73. **Q (user, 2026-11-12) — pdf.js keeps 5 rendered pages instead of 10** (patch `DEFAULT_CACHE_SIZE`) **and `maxCanvasPixels` = 2²²** (default 2²⁵, capped at 2× the screen area ≈ 43 MB per page here); supersedes the "page cache left at its defaults" part of decision 64. A page-width page in a pane under ~950 px is unaffected; zoomed pages get a lower-resolution canvas plus a sharp one for the visible part. Cost: scrolling back more than 2 pages re-renders; zoomed pages look soft for a moment while scrolling.
+74. **pdf.js FontLoader patched**: don't await `loaded` for a FontFace that is already `"loaded"` (always true in WebKit for fonts built from data). Touching that promise makes WebKit keep the FontFace and its font data forever (~20 per opened paper; Chromium frees them). Failed fonts still take the fallback path. Saves little once 71–72 are in (reviewer: 2–13 MB over 15 opens) but stops the growth; drop when WebKit or pdf.js fixes it. `local()` system fonts still leak ~2 per paper (no font data). The patch file now has three hunks (68, 73, 74).
+75. **Not changed, measured**: one shared pdf.js worker for all documents grew faster in WebKit (+20 MB per 5 opens vs +10 with a worker per document, whose heap is freed on terminate); `disableFontFace` (unneeded after 74, changes glyph rendering); the highlight layer's `mix-blend-mode` (no difference).
+
 ## Open
 
 1. **Hands-on check of the real app** — confirmed by the user: highlight drop into notes/canvas, metadata lookup. Still open: Finder PDF drop after decision 65, selection rects on real papers, quit flush. The same flows pass in a Chromium harness with mocked Tauri APIs; WKWebView is unverified. — needs the user.
+2. **Memory in the real app (decisions 71–74)** — all numbers come from Playwright WebKit, not Tauri's WKWebView. Check in Activity Monitor (`tauri://localhost`) after a release build: open and switch papers for a while, zoom, scroll back; also whether the 5-page cache's re-render when scrolling back is acceptable. — needs the user.
