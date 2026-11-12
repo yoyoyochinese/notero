@@ -26,7 +26,7 @@ const TABS: [SidebarTab, string, ReactNode][] = [
 ];
 
 // Default widths (px): the PDF gets a little more than half of what the sidebar leaves.
-const SIDEBAR = 320;
+const SIDEBAR = 300;
 const PDF = Math.round((window.innerWidth - SIDEBAR) * 0.55);
 
 const icon = (d: ReactNode) => (
