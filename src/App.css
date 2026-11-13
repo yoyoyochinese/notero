@@ -142,14 +142,22 @@ textarea {
   }
 }
 
+/* Too narrow for the active label too: the tab row would push the toggle out and scroll sideways. */
+@container (max-width: 259px) {
+  .app-sidebar .tabs button .tab-label {
+    display: none;
+  }
+}
+
 .sidebar-body {
   flex: 1;
   overflow: auto;
+  overflow-wrap: anywhere; /* a long unbroken title or comment would scroll the sidebar sideways */
 }
 
 /* Collapsed sidebar: just the toggle, aligned with the pane headers. */
 .rail {
-  flex: none;
+  height: 100%;
   width: 40px;
   display: flex;
   justify-content: center;

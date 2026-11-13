@@ -23,6 +23,7 @@
 
 .lib-toolbar input {
   flex: 1 0 100%;
+  min-width: 0; /* its default width overflowed a 200 px sidebar */
 }
 
 .lib-status {

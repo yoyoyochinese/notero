@@ -74,16 +74,16 @@ function PdfView({ paper }: { paper: Paper }) {
     const eventBus = new EventBus();
     const linkService = new PDFLinkService({ eventBus });
     // Highlights are ours, so pdf.js's annotation editor is off: in WebKit it kept closed viewers (and their
-    // pages) alive. maxCanvasPixels (default 2^25): a zoomed page gets a lower-resolution canvas plus a sharp
-    // one for the visible part, instead of up to ~43 MB per page; a page-width page in a pane under ~950 px
-    // stays below it.
+    // pages) alive. maxCanvasPixels (default 2^25): above it a page gets a half-resolution canvas plus a sharp
+    // one for the visible part, redrawn on every scroll (blurry text, ~4x the renders). 2^24 (64 MB per page)
+    // keeps page-width pages below it in panes up to ~1700 px; only zoomed pages pay that cost.
     const viewer = new PDFViewer({
       container,
       eventBus,
       linkService,
       removePageBorders: true,
       annotationEditorMode: pdfjs.AnnotationEditorType.DISABLE,
-      maxCanvasPixels: 2 ** 22,
+      maxCanvasPixels: 2 ** 24,
     });
     linkService.setViewer(viewer);
     viewerRef.current = viewer;

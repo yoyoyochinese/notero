@@ -29,6 +29,34 @@ const TABS: [SidebarTab, string, ReactNode][] = [
 const SIDEBAR = 300;
 const PDF = Math.round((window.innerWidth - SIDEBAR) * 0.55);
 
+// The saved layout is in percent of the window, so the sidebar came back at another width on another monitor
+// or window size (and clamped to 200 px on a narrow one). Its width is stored in px instead.
+type SavedLayout = { sidebarPx: number; pdf: number; right: number };
+const readLayout = (key: string): SavedLayout | null => {
+  try {
+    return JSON.parse(localStorage.getItem(key)!);
+  } catch {
+    return null; // unreadable: default widths (the app has no way to clear it)
+  }
+};
+const layoutStorage = {
+  getItem(key: string) {
+    const saved = readLayout(key);
+    if (!saved) return null;
+    const { sidebarPx, pdf, right } = saved;
+    const sidebar = Math.min((sidebarPx / innerWidth) * 100, 100);
+    const k = (100 - sidebar) / (pdf + right);
+    return JSON.stringify({ sidebar, pdf: pdf * k, right: right * k });
+  },
+  setItem(key: string, value: string) {
+    const { sidebar, pdf, right } = JSON.parse(value);
+    const px = (sidebar / 100) * innerWidth;
+    // Collapsed (the 40 px rail; open is 200 px or more): keep the width it reopens at.
+    const sidebarPx = px > 100 ? px : (readLayout(key)?.sidebarPx ?? SIDEBAR);
+    localStorage.setItem(key, JSON.stringify({ sidebarPx, pdf, right }));
+  },
+};
+
 const icon = (d: ReactNode) => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
     {d}
@@ -99,12 +127,13 @@ function Workspace() {
     const p = sidebar.current;
     if (p && sidebarOpen === p.isCollapsed()) (sidebarOpen ? p.expand : p.collapse)();
   }, [sidebar, sidebarOpen]);
-  // Bump the id when the default widths change: a layout saved under the old id would hide them.
-  const layout = useDefaultLayout({ id: "notero-layout-2", storage: localStorage, onlySaveAfterUserInteractions: true });
+  // Bump the id when the default widths or the stored format change: a layout saved under the old id would hide them.
+  const layout = useDefaultLayout({ id: "notero-layout-3", storage: layoutStorage, onlySaveAfterUserInteractions: true });
   return (
     <div className="app">
-      {!sidebarOpen && <div className="rail">{toggle}</div>}
       <Group orientation="horizontal" className="main" defaultLayout={layout.defaultLayout} onLayoutChanged={layout.onLayoutChanged}>
+        {/* Collapsed = the 40 px rail, inside the group: a rail beside it shrank the group, and each reopen
+            came back W/(W-40) wider. */}
         <Panel
           id="sidebar"
           panelRef={sidebar}
@@ -112,13 +141,14 @@ function Workspace() {
           minSize={200}
           maxSize={560}
           collapsible
-          collapsedSize={0}
+          collapsedSize={40}
           groupResizeBehavior="preserve-pixel-size"
           onResize={(size) => {
-            const open = size.inPixels > 0; // dragged shut, or reopened by dragging
+            const open = size.inPixels > 40; // dragged shut, or reopened by dragging
             if (open !== useUI.getState().sidebarOpen) setSidebarOpen(open);
           }}
         >
+          {!sidebarOpen && <div className="rail">{toggle}</div>}
           <aside className="app-sidebar" hidden={!sidebarOpen}>
             <nav className="tabs">
               {TABS.map(([id, label, d]) => (
